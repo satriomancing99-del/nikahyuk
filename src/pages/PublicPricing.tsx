@@ -9,6 +9,11 @@ export default function PublicPricing() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
 
+  // Set document title for best-in-class SEO
+  React.useEffect(() => {
+    document.title = 'Daftar Harga & Paket Undangan Digital | NikahYuk!';
+  }, []);
+
   // FAQ state toggle
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 

@@ -1,9 +1,15 @@
 import { Link } from 'react-router-dom';
 import { Heart, Palette, Smartphone, Users, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
+import { useEffect } from 'react';
 
 export default function LandingPage() {
   const { user } = useAuthStore();
+
+  // Set home page document title for SEO authority
+  useEffect(() => {
+    document.title = 'NikahYuk! - Undangan Digital Pernikahan Premium & Elegan';
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">

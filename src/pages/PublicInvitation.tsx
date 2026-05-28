@@ -186,6 +186,22 @@ export default function PublicInvitation() {
   // Copy Account details indicator
   const [copiedGiftId, setCopiedGiftId] = useState<string | null>(null);
 
+  // Dynamic Title Update for best-in-class SEO personalization
+  useEffect(() => {
+    if (invitation) {
+      const isPreviewMode = window.location.pathname.startsWith('/preview') || !!templateSlug;
+      const coupleNames = `${invitation.groom_name?.split(' ')[0]} & ${invitation.bride_name?.split(' ')[0]}`;
+      
+      if (isPreviewMode) {
+        document.title = `Pratinjau Undangan: ${coupleNames} | NikahYuk!`;
+      } else {
+        document.title = `Undangan Pernikahan ${invitation.groom_name} & ${invitation.bride_name}`;
+      }
+    } else {
+      document.title = 'NikahYuk! - Undangan Digital Pernikahan Premium & Elegan';
+    }
+  }, [invitation, templateSlug]);
+
   // Fetch Invitation & related details
   useEffect(() => {
     async function loadData() {

@@ -212,8 +212,9 @@ export default function PublicTemplates() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedTier, setSelectedTier] = useState<string>('All');
 
-  // Load active templates from Supabase
+  // Load active templates from Supabase & set document title for SEO
   useEffect(() => {
+    document.title = 'Katalog Template Undangan Pernikahan Premium | NikahYuk!';
     async function fetchTemplates() {
       try {
         setLoading(true);
