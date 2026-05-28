@@ -8,6 +8,8 @@ export interface Profile {
   email: string;
   phone: string | null;
   role: 'super_admin' | 'customer';
+  active_package_id?: string | null;
+  package_expired_at?: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -40,6 +40,17 @@ export default function Invitations() {
     setTimeout(() => setCopiedSlug(null), 2000);
   };
 
+  const handleCreateNewClick = (e: React.MouseEvent) => {
+    if (profile?.role === 'customer') {
+      const activeCount = invitations.filter(inv => inv.status === 'published').length;
+      if (activeCount >= 2) {
+        e.preventDefault();
+        alert('Batas Undangan Aktif Terlampaui!\n\nSebagai customer, Anda telah mencapai batas maksimal 2 undangan aktif/diterbitkan secara bersamaan.\n\nSilakan hapus atau ubah status undangan aktif Anda yang lain terlebih dahulu sebelum membuat undangan baru.');
+        return;
+      }
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!window.confirm('Apakah Anda yakin ingin menghapus undangan ini secara permanen? Semua data tamu, RSVP, & galeri terkait akan ikut terhapus.')) {
       return;
@@ -64,6 +75,7 @@ export default function Invitations() {
         </div>
         <Link 
           to="/dashboard/invitations/create"
+          onClick={handleCreateNewClick}
           className="bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm px-5 py-3 rounded-xl transition flex items-center gap-2 shadow-md w-max"
         >
           <Plus className="w-5 h-5" /> Buat Undangan Baru
@@ -87,6 +99,7 @@ export default function Invitations() {
           </p>
           <Link 
             to="/dashboard/invitations/create"
+            onClick={handleCreateNewClick}
             className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition shadow-sm"
           >
             Mulai Buat Undangan

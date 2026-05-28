@@ -1326,6 +1326,27 @@ export default function CreateInvitation() {
 
     try {
       setLoading(true);
+
+      // Enforce maximum of 2 active/published invitations limit for customer role
+      if (profile?.role === 'customer') {
+        const { data: existingInvs, error: checkError } = await supabase
+          .from('invitations')
+          .select('id, status')
+          .eq('user_id', user.id);
+        
+        if (checkError) throw checkError;
+
+        // Count existing active/published invitations excluding the one we are editing
+        const activeCount = existingInvs?.filter(inv => 
+          inv.status === 'published' && inv.id !== editId
+        ).length || 0;
+
+        if (activeCount >= 2) {
+          alert('Batas Undangan Aktif Terlampaui!\n\nSebagai pelanggan, Anda hanya diperbolehkan memiliki maksimal 2 undangan aktif/diterbitkan secara bersamaan.\n\nSilakan hapus atau ubah status undangan aktif Anda yang lain terlebih dahulu di halaman daftar undangan.');
+          setLoading(false);
+          return;
+        }
+      }
       
       // Step 1: Create or Update Invitation row
       const invitationPayload = {
