@@ -1,0 +1,435 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Heart, Calendar, MapPin, Clock, Volume2, VolumeX, MailOpen, Send, Users, Navigation, CheckCircle, MessageCircle } from 'lucide-react';
+
+const FALLBACK_AUDIO_URL = 'https://assets.mixkit.co/music/preview/mixkit-romantic-wedding-ballad-1191.mp3';
+const FALLBACK_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='1600' viewBox='0 0 1200 1600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop stop-color='%23fff7f4'/%3E%3Cstop offset='.45' stop-color='%23f4d7d0'/%3E%3Cstop offset='1' stop-color='%238b4b58'/%3E%3C/linearGradient%3E%3CradialGradient id='r' cx='.5' cy='.3' r='.7'%3E%3Cstop stop-color='%23ffffff' stop-opacity='.85'/%3E%3Cstop offset='1' stop-color='%23ffffff' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='1200' height='1600' fill='url(%23g)'/%3E%3Crect width='1200' height='1600' fill='url(%23r)'/%3E%3Cpath d='M219 1130c212-267 560-260 762-2' fill='none' stroke='%23fff4ec' stroke-width='20' opacity='.72'/%3E%3Ccircle cx='358' cy='458' r='126' fill='%23fff4ec' opacity='.52'/%3E%3Ccircle cx='834' cy='512' r='182' fill='%23ffd7d2' opacity='.35'/%3E%3Ctext x='600' y='810' text-anchor='middle' font-family='Georgia, serif' font-size='78' fill='%237a3c48'%3EWedding%3C/text%3E%3Ctext x='600' y='885' text-anchor='middle' font-family='Arial, sans-serif' font-size='28' letter-spacing='8' fill='%237a3c48' opacity='.76'%3EMOMENT%3C/text%3E%3C/svg%3E";
+
+const entrance = {
+  initial: { opacity: 0, y: 28 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.18 },
+  transition: { duration: 0.78, ease: [0.22, 1, 0.36, 1] }
+};
+
+function safeArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function formatDate(value, fallback = 'Sabtu, 27 Mei 2026') {
+  if (!value) return fallback;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat('id-ID', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  }).format(date);
+}
+
+function eventDateValue(eventItem) {
+  return eventItem?.date || eventItem?.datetime || eventItem?.start_time || eventItem?.start || eventItem?.event_date || '';
+}
+
+function eventTimeLabel(eventItem, fallback = '09:00 - 11:00 WIB') {
+  const direct = eventItem?.time || eventItem?.hour || eventItem?.jam;
+  if (direct) return direct;
+  const start = eventItem?.start_time || eventItem?.start;
+  const end = eventItem?.end_time || eventItem?.end;
+  const fmt = (value) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit' }).format(date).replace('.', ':');
+  };
+  const startLabel = fmt(start);
+  const endLabel = fmt(end);
+  if (startLabel && endLabel) return `${startLabel} - ${endLabel} WIB`;
+  if (startLabel) return `${startLabel} WIB`;
+  return fallback;
+}
+
+function eventPlaceLabel(eventItem, fallback = 'Grand Ballroom') {
+  return eventItem?.venue || eventItem?.place || eventItem?.location_name || eventItem?.location || eventItem?.title || fallback;
+}
+
+function eventAddressLabel(eventItem, fallback = 'Jl. Melati Indah No. 27, Kota Bahagia') {
+  return eventItem?.address || eventItem?.full_address || eventItem?.alamat || fallback;
+}
+
+function mapsUrl(eventItem) {
+  return eventItem?.google_maps_url || eventItem?.maps_url || eventItem?.map_url || eventItem?.location_url || '#';
+}
+
+function getTimeLeft(target) {
+  const diff = Math.max(0, target.getTime() - Date.now());
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+  return { days, hours, minutes, seconds };
+}
+
+function getTargetDate(eventItem) {
+  const raw = eventDateValue(eventItem);
+  const parsed = raw ? new Date(raw) : null;
+  if (parsed && !Number.isNaN(parsed.getTime())) return parsed;
+  const fallback = new Date();
+  fallback.setDate(fallback.getDate() + 30);
+  fallback.setHours(9, 0, 0, 0);
+  return fallback;
+}
+
+function imgClassFor(index) {
+  const base = 'w-full h-full object-cover rounded-[2rem] border border-white/75 shadow-[0_22px_70px_rgba(121,54,73,0.18)] transition duration-500 hover:scale-[1.015]';
+  if (index === 0) return `${base} col-span-2 row-span-2 min-h-[360px] md:min-h-[520px]`;
+  if (index === 1) return `${base} min-h-[170px] md:min-h-[250px]`;
+  return `${base} min-h-[170px] md:min-h-[250px]`;
+}
+
+export default function InvitationComponent({ mempelai, events, gallery, wishes, guest }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [rsvpStatus, setRsvpStatus] = useState('Hadir');
+  const [rsvpSent, setRsvpSent] = useState(false);
+  const [wishSent, setWishSent] = useState(false);
+  const [localWishes, setLocalWishes] = useState([]);
+  const [wishText, setWishText] = useState('');
+  const audioRef = useRef(null);
+
+  const groomName = mempelai?.groom_name || 'Aditya Pratama';
+  const brideName = mempelai?.bride_name || 'Aulia Rahmawati';
+  const groomParent = mempelai?.groom_parent || 'Bpk. Heri Pratama & Ibu Shinta';
+  const brideParent = mempelai?.bride_parent || 'Bpk. Ahmad Rahmawan & Ibu Lestari';
+  const quote = mempelai?.quote || 'Dan di antara tanda-tanda kebesaran-Nya ialah Dia menciptakan pasangan-pasangan untukmu agar kamu merasa tenteram kepadanya.';
+  const loveStory = mempelai?.love_story || 'Pertemuan yang sederhana menjadi awal perjalanan yang penuh doa. Hari demi hari menghadirkan keyakinan bahwa kebersamaan ini adalah anugerah yang patut disyukuri.';
+  const guestName = guest?.name || 'Tamu Terhormat';
+  const isGuestLocked = Boolean(guest?.name);
+  const coverImage = mempelai?.thumbnail_url || FALLBACK_IMAGE;
+
+  const eventList = safeArray(events);
+  const akad = useMemo(() => eventList?.find((e) => e?.type === 'akad' || e?.title?.toLowerCase()?.includes('akad')) || eventList?.[0] || {}, [eventList]);
+  const resepsi = useMemo(() => eventList?.find((e) => e?.type === 'resepsi' || e?.title?.toLowerCase()?.includes('resepsi')) || eventList?.[1] || {}, [eventList]);
+  const targetDate = useMemo(() => getTargetDate(akad), [akad]);
+  const [timeLeft, setTimeLeft] = useState(() => getTimeLeft(targetDate));
+
+  const galleryImages = useMemo(() => {
+    const filtered = safeArray(gallery)?.filter(
+      (img) => img?.caption !== 'groom_photo' && img?.caption !== 'bride_photo'
+    );
+    const fromData = filtered
+      ?.slice(0, 3)
+      ?.map((img, index) => ({ url: img?.url || img?.src || img?.image_url || coverImage, id: img?.id || `gallery-${index}` }));
+    if (fromData?.length) return fromData;
+    return [
+      { url: coverImage, id: 'fallback-1' },
+      { url: coverImage, id: 'fallback-2' },
+      { url: coverImage, id: 'fallback-3' }
+    ];
+  }, [gallery, coverImage]);
+
+  const displayedWishes = useMemo(() => {
+    const initial = safeArray(wishes)?.map((item, index) => ({
+      name: item?.name || item?.guest_name || 'Sahabat',
+      message: item?.message || item?.wish || item?.text || 'Selamat menempuh hidup baru. Semoga bahagia selalu.',
+      id: item?.id || `wish-${index}`
+    }));
+    const fallback = initial?.length ? initial : [
+      { name: 'Keluarga Besar', message: 'Semoga Allah melimpahkan keberkahan dan kebahagiaan sepanjang perjalanan rumah tangga.', id: 'wish-default-1' },
+      { name: 'Sahabat', message: 'Selamat berbahagia. Semoga cinta dan doa baik selalu membersamai.', id: 'wish-default-2' }
+    ];
+    return [...localWishes, ...fallback];
+  }, [wishes, localWishes]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setTimeLeft(getTimeLeft(targetDate)), 1000);
+    return () => window.clearInterval(timer);
+  }, [targetDate]);
+
+  const openInvitation = () => {
+    setIsOpen(true);
+    window.setTimeout(() => {
+      if (audioRef?.current) {
+        audioRef.current.play()
+          .then(() => setIsPlaying(true))
+          .catch(() => setIsPlaying(false));
+      }
+    }, 200);
+  };
+
+  const toggleAudio = () => {
+    if (!audioRef?.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch(() => setIsPlaying(false));
+    }
+  };
+
+  const submitRsvp = (event) => {
+    event.preventDefault();
+    setRsvpSent(true);
+  };
+
+  const submitWish = (event) => {
+    event.preventDefault();
+    const cleanMessage = wishText.trim();
+    if (!cleanMessage) return;
+    setLocalWishes([{ name: guestName, message: cleanMessage, id: `local-${Date.now()}` }]);
+    setWishText('');
+    setWishSent(true);
+  };
+
+  return (
+    <main className="min-h-screen overflow-hidden bg-[#fff8f4] text-[#59313a]">
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');`}</style>
+      <audio ref={audioRef} src={FALLBACK_AUDIO_URL} loop preload="auto" />
+
+      <AnimatePresence>
+        {!isOpen && (
+          <motion.section
+            className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-[#331924] px-6"
+            initial={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: '-105%' }}
+            transition={{ duration: 1.15, ease: [0.76, 0, 0.24, 1] }}
+          >
+            <div className="absolute inset-0 opacity-40">
+              <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
+            </div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#ffe8de_0%,rgba(255,232,222,0.16)_30%,rgba(51,25,36,0.96)_72%)]" />
+            <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full border border-[#f8c9bd]/40" />
+            <div className="absolute -bottom-36 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full border border-[#f8c9bd]/30" />
+
+            <motion.div
+              className="relative max-w-xl rounded-[3rem] border border-white/20 bg-white/10 p-8 text-center shadow-[0_40px_120px_rgba(0,0,0,0.35)] backdrop-blur-2xl md:p-12"
+              initial={{ opacity: 0, scale: 0.92, y: 34 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <p className="mb-4 font-[Inter] text-xs uppercase tracking-[0.45em] text-[#ffd9ce]">The Wedding Of</p>
+              <h1 className="font-[Cormorant_Garamond] text-5xl font-bold leading-none text-white md:text-7xl">{groomName} & {brideName}</h1>
+              <div className="mx-auto my-8 h-px w-28 bg-gradient-to-r from-transparent via-[#ffd1c4] to-transparent" />
+              <p className="font-[Inter] text-sm uppercase tracking-[0.28em] text-[#ffe9e2]">Kepada Yth.</p>
+              <p className="mt-3 rounded-2xl bg-white/16 px-5 py-4 font-[Cormorant_Garamond] text-3xl font-semibold text-white shadow-inner">{guestName}</p>
+              <button
+                type="button"
+                onClick={openInvitation}
+                className="mt-9 inline-flex items-center justify-center gap-3 rounded-full bg-[#fff1ea] px-8 py-4 font-[Inter] text-sm font-bold uppercase tracking-[0.22em] text-[#67323d] shadow-[0_20px_60px_rgba(255,211,199,0.28)] transition hover:-translate-y-1 hover:bg-white"
+              >
+                <MailOpen size={18} /> Buka Undangan
+              </button>
+            </motion.div>
+          </motion.section>
+        )}
+      </AnimatePresence>
+
+      <button
+        type="button"
+        onClick={toggleAudio}
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-[#efc7bc] bg-white/86 text-[#7b4050] shadow-[0_18px_45px_rgba(112,55,70,0.18)] backdrop-blur-xl transition hover:-translate-y-1"
+        aria-label="Audio controller"
+      >
+        {isPlaying ? <Volume2 size={22} /> : <VolumeX size={22} />}
+      </button>
+
+      <section className="relative min-h-screen overflow-hidden px-5 py-20 md:px-10">
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,#fff8f4_0%,#fee8df_42%,#f7cfc7_100%)]" />
+        <div className="absolute -left-24 top-24 h-80 w-80 rounded-full bg-[#f5aeb2]/25 blur-3xl" />
+        <div className="absolute -right-32 bottom-16 h-96 w-96 rounded-full bg-[#d8959e]/25 blur-3xl" />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1fr_0.9fr]">
+          <motion.div {...entrance}>
+            <p className="font-[Inter] text-xs font-semibold uppercase tracking-[0.5em] text-[#9b5c6a]">Save The Date</p>
+            <h2 className="mt-6 font-[Cormorant_Garamond] text-6xl font-bold leading-[0.92] text-[#552834] md:text-8xl">
+              {groomName}<br />&<br />{brideName}
+            </h2>
+            <p className="mt-8 max-w-2xl font-[Inter] text-base leading-8 text-[#704653] md:text-lg">{quote}</p>
+            <div className="mt-10 grid grid-cols-4 gap-3 max-w-xl">
+              {[
+                ['Hari', timeLeft.days],
+                ['Jam', timeLeft.hours],
+                ['Menit', timeLeft.minutes],
+                ['Detik', timeLeft.seconds]
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-[1.6rem] border border-white/80 bg-white/58 p-4 text-center shadow-[0_18px_50px_rgba(113,57,72,0.12)] backdrop-blur-xl">
+                  <div className="font-[Cormorant_Garamond] text-3xl font-bold text-[#6a3141] md:text-4xl">{String(value).padStart(2, '0')}</div>
+                  <div className="mt-1 font-[Inter] text-[10px] uppercase tracking-[0.28em] text-[#9b6470]">{label}</div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          <motion.div {...entrance} className="relative mx-auto w-full max-w-[520px]">
+            <div className="absolute -inset-5 rounded-[3.5rem] bg-gradient-to-br from-white/90 via-[#fed9d1]/60 to-[#b7697a]/30 blur-2xl" />
+            <div className="relative aspect-[4/5] overflow-hidden rounded-[3.5rem] border-[10px] border-white/80 bg-white shadow-[0_35px_110px_rgba(112,55,70,0.22)]">
+              <img src={coverImage} alt="Mempelai" className="w-full h-full object-cover" />
+            </div>
+            <div className="absolute -bottom-8 -left-3 rounded-[2rem] border border-white/80 bg-white/78 px-6 py-4 shadow-[0_20px_60px_rgba(112,55,70,0.16)] backdrop-blur-xl">
+              <p className="font-[Cormorant_Garamond] text-3xl font-bold text-[#643140]">{formatDate(eventDateValue(akad))}</p>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="relative px-5 py-20 md:px-10">
+        <div className="mx-auto max-w-6xl">
+          <motion.div {...entrance} className="text-center">
+            <p className="font-[Inter] text-xs font-semibold uppercase tracking-[0.45em] text-[#b5747e]">Mempelai</p>
+            <h2 className="mt-4 font-[Cormorant_Garamond] text-5xl font-bold text-[#552834] md:text-6xl">Dengan Penuh Cinta</h2>
+          </motion.div>
+
+          <div className="mt-14 grid gap-8 md:grid-cols-2">
+            {[
+              { 
+                name: groomName, 
+                parent: groomParent, 
+                label: 'Mempelai Pria',
+                photo: safeArray(gallery)?.find(m => m?.caption === 'groom_photo')?.url || 
+                       safeArray(gallery)?.find(m => m?.caption === 'groom_photo')?.src || 
+                       safeArray(gallery)?.find(m => m?.caption === 'groom_photo')?.image_url || 
+                       coverImage 
+              },
+              { 
+                name: brideName, 
+                parent: brideParent, 
+                label: 'Mempelai Wanita',
+                photo: safeArray(gallery)?.find(m => m?.caption === 'bride_photo')?.url || 
+                       safeArray(gallery)?.find(m => m?.caption === 'bride_photo')?.src || 
+                       safeArray(gallery)?.find(m => m?.caption === 'bride_photo')?.image_url || 
+                       coverImage 
+              }
+            ].map((person) => (
+              <motion.article key={person.label} {...entrance} className="overflow-hidden rounded-[3rem] border border-[#f3d3cc] bg-white/74 p-6 shadow-[0_24px_80px_rgba(124,63,78,0.12)] backdrop-blur-xl">
+                <div className="relative mx-auto aspect-square w-56 overflow-hidden rounded-full border-[8px] border-[#fff4ef] bg-[#f8ded7] shadow-inner">
+                  <img src={person.photo} alt={person.label} className="w-full h-full object-cover" />
+                </div>
+                <div className="px-3 py-7 text-center">
+                  <p className="font-[Inter] text-[11px] font-semibold uppercase tracking-[0.42em] text-[#b5747e]">{person.label}</p>
+                  <h3 className="mt-3 font-[Cormorant_Garamond] text-5xl font-bold text-[#5b2d3b]">{person.name}</h3>
+                  <p className="mt-4 font-[Inter] text-sm leading-7 text-[#76505a]">Putra/Putri dari<br />{person.parent}</p>
+                </div>
+              </motion.article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="relative px-5 py-20 md:px-10">
+        <div className="mx-auto max-w-6xl rounded-[3rem] border border-[#efcec6] bg-[#fffaf7] p-6 shadow-[0_28px_90px_rgba(118,61,75,0.10)] md:p-10">
+          <motion.div {...entrance} className="max-w-3xl">
+            <p className="font-[Inter] text-xs font-semibold uppercase tracking-[0.45em] text-[#b5747e]">Kisah Kami</p>
+            <h2 className="mt-4 font-[Cormorant_Garamond] text-5xl font-bold text-[#552834]">Perjalanan Cinta</h2>
+            <p className="mt-5 font-[Inter] text-base leading-8 text-[#704653]">{loveStory}</p>
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="relative px-5 py-20 md:px-10">
+        <div className="mx-auto max-w-6xl">
+          <motion.div {...entrance} className="text-center">
+            <p className="font-[Inter] text-xs font-semibold uppercase tracking-[0.45em] text-[#b5747e]">Agenda</p>
+            <h2 className="mt-4 font-[Cormorant_Garamond] text-5xl font-bold text-[#552834] md:text-6xl">Rangkaian Acara</h2>
+          </motion.div>
+          <div className="mt-12 grid gap-7 md:grid-cols-2">
+            {[
+              { title: 'Akad Nikah', data: akad, icon: <Heart size={24} /> },
+              { title: 'Resepsi', data: resepsi, icon: <Users size={24} /> }
+            ].map((item) => (
+              <motion.article key={item.title} {...entrance} className="rounded-[2.5rem] border border-[#efcec6] bg-white/78 p-7 shadow-[0_24px_80px_rgba(124,63,78,0.12)] backdrop-blur-xl">
+                <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#7a3b4b] text-white shadow-lg">{item.icon}</div>
+                <h3 className="font-[Cormorant_Garamond] text-4xl font-bold text-[#552834]">{item.title}</h3>
+                <div className="mt-6 space-y-4 font-[Inter] text-sm leading-7 text-[#704653]">
+                  <p className="flex gap-3"><Calendar className="mt-1 shrink-0 text-[#a65d6b]" size={18} />{formatDate(eventDateValue(item.data))}</p>
+                  <p className="flex gap-3"><Clock className="mt-1 shrink-0 text-[#a65d6b]" size={18} />{eventTimeLabel(item.data)}</p>
+                  <p className="flex gap-3"><MapPin className="mt-1 shrink-0 text-[#a65d6b]" size={18} />{eventPlaceLabel(item.data)}<br />{eventAddressLabel(item.data)}</p>
+                </div>
+                <a href={mapsUrl(item.data)} target="_blank" rel="noreferrer" className="mt-7 inline-flex items-center gap-2 rounded-full bg-[#643140] px-6 py-3 font-[Inter] text-xs font-bold uppercase tracking-[0.2em] text-white transition hover:-translate-y-1">
+                  <Navigation size={16} /> Rute Lokasi
+                </a>
+              </motion.article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="relative px-5 py-20 md:px-10">
+        <div className="mx-auto max-w-6xl">
+          <motion.div {...entrance} className="mb-12 text-center">
+            <p className="font-[Inter] text-xs font-semibold uppercase tracking-[0.45em] text-[#b5747e]">Galeri Foto</p>
+            <h2 className="mt-4 font-[Cormorant_Garamond] text-5xl font-bold text-[#552834] md:text-6xl">Momen Bahagia</h2>
+          </motion.div>
+          <div className="grid auto-rows-[170px] grid-cols-2 gap-4 md:auto-rows-[250px] md:grid-cols-3 md:gap-6">
+            {galleryImages?.map((img, index) => (
+              <img key={img?.id || index} src={img?.url || coverImage} alt={`Galeri ${index + 1}`} className={imgClassFor(index)} loading="lazy" />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="relative px-5 py-20 md:px-10">
+        <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+          <motion.form onSubmit={submitRsvp} {...entrance} className="rounded-[2.7rem] border border-[#efcec6] bg-white/80 p-7 shadow-[0_24px_80px_rgba(124,63,78,0.12)] backdrop-blur-xl">
+            <p className="font-[Inter] text-xs font-semibold uppercase tracking-[0.42em] text-[#b5747e]">RSVP</p>
+            <h2 className="mt-4 font-[Cormorant_Garamond] text-4xl font-bold text-[#552834]">Konfirmasi Kehadiran</h2>
+            <label className="mt-7 block font-[Inter] text-xs font-semibold uppercase tracking-[0.18em] text-[#8b5965]">Nama Tamu</label>
+            <input
+              value={guestName}
+              readOnly={isGuestLocked}
+              disabled={isGuestLocked}
+              className={`mt-2 w-full rounded-2xl border px-4 py-4 font-[Inter] outline-none ${isGuestLocked ? 'cursor-not-allowed border-[#d8c4bf] bg-[#eee8e5] text-[#82706c]' : 'border-[#efd1ca] bg-white text-[#59313a]'}`}
+            />
+            <label className="mt-5 block font-[Inter] text-xs font-semibold uppercase tracking-[0.18em] text-[#8b5965]">Status</label>
+            <select value={rsvpStatus} onChange={(e) => setRsvpStatus(e.target.value)} className="mt-2 w-full rounded-2xl border border-[#efd1ca] bg-white px-4 py-4 font-[Inter] text-[#59313a] outline-none">
+              <option>Hadir</option>
+              <option>Berhalangan</option>
+              <option>Masih Dipertimbangkan</option>
+            </select>
+            <button type="submit" className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#643140] px-6 py-4 font-[Inter] text-xs font-bold uppercase tracking-[0.22em] text-white transition hover:-translate-y-1">
+              <CheckCircle size={17} /> Kirim RSVP
+            </button>
+            {rsvpSent && <p className="mt-4 rounded-2xl bg-[#f8e4df] px-4 py-3 font-[Inter] text-sm text-[#6f3a48]">Terima kasih. Konfirmasi Anda telah tersimpan.</p>}
+          </motion.form>
+
+          <motion.div {...entrance} className="rounded-[2.7rem] border border-[#efcec6] bg-white/80 p-7 shadow-[0_24px_80px_rgba(124,63,78,0.12)] backdrop-blur-xl">
+            <p className="font-[Inter] text-xs font-semibold uppercase tracking-[0.42em] text-[#b5747e]">Ucapan</p>
+            <h2 className="mt-4 font-[Cormorant_Garamond] text-4xl font-bold text-[#552834]">Doa Restu</h2>
+            <form onSubmit={submitWish} className="mt-7 grid gap-4">
+              <input
+                value={guestName}
+                readOnly={isGuestLocked}
+                disabled={isGuestLocked}
+                className={`w-full rounded-2xl border px-4 py-4 font-[Inter] outline-none ${isGuestLocked ? 'cursor-not-allowed border-[#d8c4bf] bg-[#eee8e5] text-[#82706c]' : 'border-[#efd1ca] bg-white text-[#59313a]'}`}
+              />
+              <textarea
+                value={wishText}
+                onChange={(e) => setWishText(e.target.value)}
+                rows={4}
+                placeholder="Tulis ucapan dan doa terbaik"
+                className="w-full resize-none rounded-2xl border border-[#efd1ca] bg-white px-4 py-4 font-[Inter] text-[#59313a] outline-none placeholder:text-[#b49aa0]"
+              />
+              <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#643140] px-6 py-4 font-[Inter] text-xs font-bold uppercase tracking-[0.22em] text-white transition hover:-translate-y-1">
+                <Send size={17} /> Kirim Ucapan
+              </button>
+              {wishSent && <p className="rounded-2xl bg-[#f8e4df] px-4 py-3 font-[Inter] text-sm text-[#6f3a48]">Ucapan Anda telah ditambahkan.</p>}
+            </form>
+            <div className="mt-7 max-h-72 space-y-4 overflow-y-auto pr-2">
+              {displayedWishes?.map((item) => (
+                <article key={item?.id} className="rounded-2xl border border-[#f0d9d3] bg-[#fff8f4] p-4">
+                  <p className="flex items-center gap-2 font-[Inter] text-sm font-bold text-[#60303d]"><MessageCircle size={16} />{item?.name}</p>
+                  <p className="mt-2 font-[Inter] text-sm leading-6 text-[#76505a]">{item?.message}</p>
+                </article>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      <footer className="border-t border-[#efd1ca] bg-[#fff8f4] px-5 py-9 text-center">
+        <p className="font-[Inter] text-xs uppercase tracking-[0.32em] text-[#9b6470]">Created with <a href="https://nikahyuk.com" className="font-bold text-[#643140] hover:underline">NikahYuk!</a></p>
+      </footer>
+    </main>
+  );
+}
