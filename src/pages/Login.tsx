@@ -86,9 +86,6 @@ export default function Login() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-2">Selamat Datang</h1>
         <p className="text-gray-600">Masuk ke akun NikahYuk! Anda.</p>
-        <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-lg text-sm">
-          <strong>Info Admin:</strong> Untuk mendapatkan akses Super Admin, silakan ke halaman Daftar dan gunakan email <code>admin@nikahyuk.com</code>.
-        </div>
       </div>
 
       {error && (
