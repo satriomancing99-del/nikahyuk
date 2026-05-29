@@ -196,6 +196,20 @@ const FALLBACK_TEMPLATES: Template[] = [
     status: 'active',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
+  },
+
+  // 6. Typography Category (No Photo - Pure Typographic)
+  {
+    id: 't-silver',
+    name: 'Elegance Typique Minimalist',
+    slug: 'elegance-typique',
+    category: 'Typography',
+    price: 0,
+    thumbnail_url: 'https://images.unsplash.com/photo-1473177104440-ffee2f376098?auto=format&fit=crop&q=80&w=600',
+    preview_url: '/preview/elegance-typique',
+    status: 'active',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   }
 ];
 
@@ -245,7 +259,10 @@ export default function PublicTemplates() {
   const filteredTemplates = templates.filter(t => {
     const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           t.slug.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || t.category?.toLowerCase() === selectedCategory.toLowerCase();
+    const matchesCategory = selectedCategory === 'All' || 
+      (selectedCategory === 'Typography' 
+        ? (t.category?.toLowerCase() === 'typography' || t.slug?.includes('typique'))
+        : t.category?.toLowerCase() === selectedCategory.toLowerCase());
     
     let templateTier = 'Silver';
     if (Number(t.price) === 99000) templateTier = 'Gold';
@@ -256,7 +273,7 @@ export default function PublicTemplates() {
     return matchesSearch && matchesCategory && matchesTier;
   });
 
-  const categories = ['All', 'Minimalist', 'Rustic', 'Islamic', 'Floral', 'Classic'];
+  const categories = ['All', 'Minimalist', 'Rustic', 'Islamic', 'Floral', 'Classic', 'Typography'];
   const packageTiers = ['All', 'Silver', 'Gold', 'Platinum'];
 
   const handleUseTemplate = (slug: string, price: number) => {
@@ -384,7 +401,7 @@ export default function PublicTemplates() {
                         : 'bg-slate-50 text-gray-500 hover:bg-slate-100 hover:text-gray-900'
                     }`}
                   >
-                    {cat === 'All' ? 'Semua Kategori' : cat}
+                    {cat === 'All' ? 'Semua Kategori' : cat === 'Typography' ? '📖 Tanpa Foto (Tipografi)' : cat}
                   </button>
                 ))}
               </div>

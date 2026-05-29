@@ -9,7 +9,7 @@ import { templateService } from '../../services';
 import { Template } from '../../types/database.types';
 
 // Supported category list
-const CATEGORIES = ['Classic', 'Rustic', 'Minimalist', 'Modern', 'Islamic', 'Floral', 'Premium'];
+const CATEGORIES = ['Classic', 'Rustic', 'Minimalist', 'Modern', 'Islamic', 'Floral', 'Premium', 'Typography'];
 
 const getDefaultJsxCodeForCategory = (category: string, name: string) => {
   const cat = category?.toLowerCase() || '';
@@ -235,7 +235,7 @@ export default function TemplatesManager() {
   const [previewTab, setPreviewTab] = useState<'ui' | 'jsx'>('ui');
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
-  const [activePromptTier, setActivePromptTier] = useState<'silver' | 'gold' | 'platinum'>('gold');
+  const [activePromptTier, setActivePromptTier] = useState<'silver' | 'gold' | 'platinum' | 'typography'>('gold');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
@@ -259,6 +259,18 @@ export default function TemplatesManager() {
       photoLimitText = 'Maksimal 12 Foto saja (slice array gallery ke maks 12 data, contoh: gallery?.slice(0, 12).map(...)).';
       bgmText = '- mempelai?.music_url (URL berkas latar musik .mp3 hasil pilihan atau unggahan manual kustomer. Wajib gunakan variabel ini untuk memutar musik latar kustomer! Sediakan URL musik instrumen romantis premium sebagai fallback pertahanan jika variabel ini null.) + Sediakan tombol putar suara sambutan kustom kustomer bila tersedia.';
       watermarkText = '- DILARANG KERAS menampilkan logo, nama, atau identitas platform NikahYuk! di layar visual kustomer. Template Platinum harus 100% bersih tanpa watermark branding platform!';
+    } else if (activePromptTier === 'typography') {
+      priceText = '0';
+      photoLimitText = 'DILARANG KERAS merender foto profil mempelai, foto utama, maupun seksi galeri prewedding! Paket ini didesain 100% murni berbasis keindahan tipografi artistik (Pure Typographic) untuk kustomer yang tidak ingin mengunggah foto.';
+      bgmText = '- mempelai?.music_url (URL berkas latar musik .mp3 hasil pilihan atau unggahan manual kustomer. Wajib gunakan variabel ini untuk memutar musik latar kustomer! Sediakan URL musik instrumen romantis premium sebagai fallback pertahanan jika variabel ini null.)';
+      giftText = '- gifts (Array rekening/hadiah amplop digital):\n  * Map hadiah mempelai: gifts?.map(gift => ...)\n  * Sediakan tombol "Salin Rekening" bertuliskan Copy yang menyalin gift.account_number ke clipboard tamu secara mulus.';
+      eGiftSection = '- **E-Gift & Kado Amplop Digital**: Kotak rekening digital kustomer lengkap dengan tombol instan untuk menyalin nomor rekening ke clipboard secara mulus.';
+      watermarkText = `* **LOGIKA TANPA GAMBAR (STRICTLY NO-IMAGE DESIGN)**:
+    - JANGAN merender tag <img> untuk profil mempelai pria, wanita, cover depan, maupun galeri!
+    - Untuk foto profil pria dan wanita yang kosong: Gantilah dengan inisial huruf pertama nama mempelai (misal: "A" untuk Aditya, "A" untuk Aulia) di dalam kontainer lingkaran/kotak bergradasi warna HSL lembut yang serasi dengan tema desain.
+    - Untuk seksi cover pembuka depan & hero banner: Gunakan ornamen visual murni berbasis CSS/SVG (garis pembatas ultra-tipis, ornamen bunga SVG halus, garis lengkung artistik, atau pola gradien mewah) untuk menyelimuti nama mempelai agar terlihat megah dan estetik tanpa gambar latar belakang.
+    - Seksi Galeri Prewedding wajib disembunyikan sepenuhnya!
+    - Kategori config.json wajib diisi: "Typography"`;
     }
 
     const promptText = `Anda adalah AI developer ahli pembuat UI template undangan pernikahan digital berstandar premium dunia. Tugas Anda adalah menghasilkan KODE SUMBER KOMPONEN REACT (.jsx) dan berkas METADATA (.json) yang dirancang khusus untuk diimpor ke platform kami dalam satu paket ZIP.
@@ -986,8 +998,8 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
               </p>
 
               {/* Package selector tabs for Prompt Creator */}
-              <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl mb-3">
-                {(['silver', 'gold', 'platinum'] as const).map((tier) => (
+              <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-xl mb-3">
+                {(['silver', 'gold', 'platinum', 'typography'] as const).map((tier) => (
                   <button
                     key={tier}
                     type="button"
@@ -998,7 +1010,7 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
                         : 'text-gray-500 hover:text-gray-800'
                     }`}
                   >
-                    {tier === 'silver' ? '🤍 Silver' : tier === 'gold' ? '👑 Gold' : '✨ Platinum'}
+                    {tier === 'silver' ? '🤍 Silver' : tier === 'gold' ? '👑 Gold' : tier === 'platinum' ? '✨ Platinum' : '📖 Tnp Foto'}
                   </button>
                 ))}
               </div>

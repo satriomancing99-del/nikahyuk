@@ -155,6 +155,17 @@ const FALLBACK_TEMPLATES = [
     thumbnail_url: 'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?auto=format&fit=crop&q=80&w=400',
     preview_url: '/preview/floral',
     status: 'active'
+  },
+
+  // 6. Typography Category (No Photo - Pure Typographic)
+  {
+    name: 'Elegance Typique Minimalist',
+    slug: 'elegance-typique',
+    category: 'Typography',
+    price: 0, // Available to all tiers (Silver, Gold, Platinum)
+    thumbnail_url: 'https://images.unsplash.com/photo-1473177104440-ffee2f376098?auto=format&fit=crop&q=80&w=400',
+    preview_url: '/preview/elegance-typique',
+    status: 'active'
   }
 ];
 
@@ -286,6 +297,7 @@ export default function CreateInvitation() {
         bride_name: '',
         bride_parent: '',
         quote: 'Dan di antara tanda-tanda (kebesaran)-Nya ialah Dia menciptakan pasangan-pasangan untukmu dari jenismu sendiri, agar kamu cenderung dan merasa tenteram kepadanya, dan Dia menjadikan di antaramu rasa kasih dan sayang.',
+        love_story: '',
       });
       setEventAkad({
         title: 'Akad Nikah',
@@ -336,6 +348,7 @@ export default function CreateInvitation() {
     bride_name: '',
     bride_parent: '',
     quote: 'Dan di antara tanda-tanda (kebesaran)-Nya ialah Dia menciptakan pasangan-pasangan untukmu dari jenismu sendiri, agar kamu cenderung dan merasa tenteram kepadanya, dan Dia menjadikan di antaramu rasa kasih dan sayang.',
+    love_story: '',
   });
 
   // Step 3: Event details (Akad & Resepsi)
@@ -524,7 +537,23 @@ export default function CreateInvitation() {
   // Step 6: Slug customization
   const [customSlug, setCustomSlug] = useState('');
 
+  // Category filter for Step 1 template selection
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+
   const filteredTemplates = templates.filter(t => {
+    // Category filter
+    const isTypography = t.category?.toLowerCase() === 'typography' || t.slug?.includes('typique');
+    if (selectedCategory !== 'All') {
+      if (selectedCategory === 'Typography') {
+        if (!isTypography) return false;
+      } else {
+        if (t.category?.toLowerCase() !== selectedCategory.toLowerCase()) return false;
+      }
+    }
+
+    // Typography templates are always unlocked for all tiers
+    if (isTypography) return true;
+
     if (profile?.role === 'super_admin') return true;
     const price = Number(t.price);
     if (activePackage === 'silver') return price === 0 || price === 49000;
@@ -617,6 +646,7 @@ export default function CreateInvitation() {
           bride_name: inv.bride_name || '',
           bride_parent: inv.bride_parent || '',
           quote: inv.quote || '',
+          love_story: inv.love_story || '',
         });
         
         setCustomSlug(inv.slug || '');
@@ -1232,7 +1262,7 @@ export default function CreateInvitation() {
           bride_parent: mempelai.bride_parent || 'Ayah & Ibu',
           quote: mempelai.quote,
           thumbnail_url: resolvedCoverUrl || selectedTemplate.thumbnail_url,
-          love_story: '',
+          love_story: mempelai.love_story || '',
           music_url: musicFile ? URL.createObjectURL(musicFile) : '',
           status: 'draft',
         },
@@ -1358,6 +1388,7 @@ export default function CreateInvitation() {
         groom_parent: mempelai.groom_parent,
         bride_parent: mempelai.bride_parent,
         quote: mempelai.quote,
+        love_story: mempelai.love_story || '',
         status: 'published', // Active published
       };
 
@@ -1652,7 +1683,34 @@ export default function CreateInvitation() {
                 <p className="text-sm text-gray-500">Mengambil daftar template eksklusif...</p>
               </div>
             ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <>
+                {/* Category Filter Pills */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {[
+                    { key: 'All', label: 'Semua Tema' },
+                    { key: 'Typography', label: '📖 Tanpa Foto (Tipografi)' },
+                    { key: 'Classic', label: '👑 Classic' },
+                    { key: 'Rustic', label: '🌿 Rustic' },
+                    { key: 'Minimalist', label: '📐 Minimalist' },
+                    { key: 'Islamic', label: '🕌 Islamic' },
+                    { key: 'Floral', label: '💐 Floral' },
+                  ].map((cat) => (
+                    <button
+                      key={cat.key}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat.key)}
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                        selectedCategory === cat.key
+                          ? 'bg-primary-600 text-white shadow-sm ring-2 ring-primary-200'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredTemplates.map((tpl) => {
                   const isSelected = selectedTemplate?.id === tpl.id;
                   return (
@@ -1702,6 +1760,7 @@ export default function CreateInvitation() {
                   );
                 })}
               </div>
+              </>
             )}
           </div>
         )}
@@ -1826,6 +1885,23 @@ export default function CreateInvitation() {
                 onChange={(e) => setMempelai(prev => ({ ...prev, quote: e.target.value }))}
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
                 placeholder="Tulis kutipan ayat suci atau kata-kata penyatu cinta kalian..."
+              />
+            </div>
+
+            {/* Love Story / Kisah Cinta */}
+            <div className="bg-gradient-to-br from-rose-50/40 to-pink-50/30 p-6 rounded-2xl border border-rose-100">
+              <label className="block text-xs font-bold text-gray-700 mb-1.5 flex items-center gap-1.5">
+                <Heart className="w-3.5 h-3.5 text-rose-500 fill-current" /> Kisah Cinta Kami <span className="text-[10px] text-gray-400 font-normal">(opsional)</span>
+              </label>
+              <p className="text-[11px] text-gray-500 mb-3 leading-relaxed">
+                Ceritakan perjalanan cinta kalian berdua, mulai dari awal perkenalan hingga keputusan untuk menikah. Kolom ini bersifat opsional — jika dikosongkan, seksi kisah cinta tidak akan ditampilkan pada undangan.
+              </p>
+              <textarea 
+                rows={4}
+                value={mempelai.love_story}
+                onChange={(e) => setMempelai(prev => ({ ...prev, love_story: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-xl border border-rose-200 focus:outline-none focus:ring-2 focus:ring-rose-400 text-sm bg-white/80"
+                placeholder="Contoh: Kami bertemu pertama kali pada tahun 2020 di bangku kuliah universitas..."
               />
             </div>
           </div>
