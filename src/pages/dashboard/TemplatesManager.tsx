@@ -445,7 +445,7 @@ export default function TemplatesManager() {
 Paket ZIP yang Anda hasilkan WAJIB berisi 3 berkas utama:
 1. "config.json" (Berkas konfigurasi template)
 2. "template.jsx" (Kode sumber komponen React premium)
-3. "thumbnail.jpg" atau "thumbnail.png" (Gambar pratinjau kartu mockup dengan estetika tinggi, bukan potongan dari undangan)
+3. "thumbnail.png" atau "thumbnail.jpg" (Gambar pratinjau berupa Phone Mockup premium yang elegan, menampilkan visual layar HP dengan isi undangan di dalamnya dan berlatar belakang artistik yang kontras. DILARANG keras menggunakan ilustrasi kartun/gambar pasangan pengantin biasa, melainkan wajib mockup perangkat HP profesional.)
 
 Berikut adalah petunjuk teknis super-detail agar template yang dihasilkan 100% kompatibel dengan database kami, rapi, responsif, dan sangat mewah:
 
@@ -456,13 +456,13 @@ Tulis konfigurasi metadata template Anda dengan format JSON berikut:
   "category": "Classic | Rustic | Minimalist | Modern | Islamic | Floral | Premium",
   "price": ${priceText},
   "slug": "[slug-unik-huruf-kecil-dan-minus - Contoh: eternal-sakura-premium]",
-  "thumbnail_url": "thumbnail.jpg",
+  "thumbnail_url": "thumbnail.png",
   "preview_url": "/preview/[slug-unik-anda]"
 }
 
 2. DESAIN ESTETIKA & DIVERSIFIKASI LAYOUT (AESTHETIC & DIVERSE DESIGN GUIDELINES):
 - **PETUNJUK TEMA UNIVERSAL (PENTING)**: Secara default, buatlah tema desain yang universal, netral, dan cocok untuk seluruh agama/tradisi (seperti Classic, Rustic, Floral, atau Minimalist) dengan kutipan cinta/pernikahan yang romantis secara universal, KECUALI jika pengguna secara spesifik meminta tema keagamaan tertentu (seperti Islamic).
-- JANGAN terpaku pada 1 model desain standar. Buatlah desain, struktur layout, kombinasi warna, border-radius, font, gaya ilustrasi, ilustrasi, grid foto (hindari tata letak baris kotak seragam yang monoton dan membosankan), bingkai foto dan transisi yang SEPENUHNYA UNIK, berbeda, inovatif, dan berkelas dunia untuk setiap kategori:
+- JANGAN terpaku pada 1 model desain standar. Buatlah desain, struktur layout, kombinasi warna, border-radius, font, gaya ornamen visual, ornamen dekoratif, grid foto (hindari tata letak baris kotak seragam yang monoton dan membosankan), bingkai foto dan transisi yang SEPENUHNYA UNIK, berbeda, inovatif, dan berkelas dunia untuk setiap kategori:
   * **Rustic/Botanical**: Gunakan earthy tones (cokelat pasir, krem lembut, hijau zaitun), font serif bernuansa klasik, dekorasi botani minimalis, border melengkung organik yang halus, dan nuansa kertas daur ulang bertekstur.
   * **Minimalist/Bento-Grid**: Tata letak asimetris kontemporer berbasis kotak (bento-style grid) tanpa border melingkar kasar, menggunakan ruang putih (white space) yang luas, tipografi sans-serif uppercase tipis pelengkap, dan skema warna monokromatik modern berserat mewah.
   * **Islamic/Arabesque**: Gabungkan ornamen kubah masjid halus, pola geometris islami (Arabesque), latar belakang hijau emerald tua yang berpadu dengan aksen emas bercahaya premium.
@@ -531,7 +531,7 @@ Agar tidak terjadi error "Cannot read properties of undefined", wajib gunakan op
 Anda dibebaskan menyusun layout, hierarki visual, warna, dan kombinasi animasi secara sekreatif mungkin, namun secara garis besar wajib menyajikan blok interaktif berikut:
 - **Cover Welcome Overlay**: Layar sambutan awal yang menghalangi konten utama sebelum diklik. Menampilkan nama mempelai, nama personal tamu kustom (\`guest?.name || 'Tamu Terhormat'\`), dan tombol pembuka undangan interaktif. Ketika tombol diklik, gerbang cover meluncur ke atas (*slide-up*) dengan transisi super-halus dan memicu musik latar kustomer (\`mempelai?.music_url\`) berputar otomatis secara *looping*.
 - **Floating Audio Controller**: Tombol lingkaran mengambang elegan di sudut layar yang memungkinkan pengunjung memutar/menjeda (*play/pause*) musik latar kapan saja.
-- **Hero & Countdown Banner**: Sapaan megah nama mempelai berhias ilustrasi/dekorasi yang disesuaikan dengan tema visual terpilih, dilengkapi modul hitung mundur dinamis menuju hari akad pernikahan.
+- **Hero & Countdown Banner**: Sapaan megah nama mempelai berhias ornamen dekoratif/grafis yang disesuaikan dengan tema visual terpilih, dilengkapi modul hitung mundur dinamis menuju hari akad pernikahan.
 - **Profil Pasangan Mempelai**: Kartu profil personal mempelai pria dan wanita yang rapi lengkap dengan nama orang tua, menggunakan foto profil kustomer pria (\`gallery?.find(img => img.caption === 'groom_photo')?.url\` dengan fallback \`mempelai?.thumbnail_url\`) dan foto profil kustomer wanita (\`gallery?.find(img => img.caption === 'bride_photo')?.url\` dengan fallback \`mempelai?.thumbnail_url\`).
 - **Informasi Acara (Events)**: Menyajikan detail waktu, hari-H, alamat, dan tombol rute menuju Google Maps (\`google_maps_url\`) secara responsif.
 - **Form RSVP & Kirim Ucapan Terkunci**: Panel di mana tamu dapat mengonfirmasi status kedatangan dan mengetikkan ucapan selamat dengan kolom nama yang dikunci aman.
@@ -1614,16 +1614,17 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
                       </div>
                       <div className="p-4 bg-gray-55/50 border-t border-gray-150 flex items-center justify-between">
                         <span className="text-xs font-bold text-gray-900 truncate max-w-[150px]">{tpl.name}</span>
-                        <button
-                          type="button"
+                        <a
+                          href={tpl.preview_url?.startsWith('http') ? tpl.preview_url : `/preview/${tpl.slug || 'classic'}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           onClick={() => {
                             localStorage.setItem(`draft_template_${tpl.slug || 'classic'}`, JSON.stringify(tpl));
-                            window.open(tpl.preview_url?.startsWith('http') ? tpl.preview_url : `/preview/${tpl.slug || 'classic'}`, '_blank');
                           }}
                           className="text-primary-600 hover:text-primary-700 text-[10px] font-bold flex items-center gap-0.5"
                         >
                           <Eye className="w-3.5 h-3.5" /> Pratinjau
-                        </button>
+                        </a>
                       </div>
                     </div>
                   ))}
@@ -2207,14 +2208,16 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
 
                     {/* The Sim card item */}
                     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow transition-shadow group">
-                      <div
+                      <a
+                        href={`/preview/${draftTemplate?.slug || 'classic'}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         onClick={() => {
                           if (draftTemplate) {
                             localStorage.setItem(`draft_template_${draftTemplate.slug || 'classic'}`, JSON.stringify(draftTemplate));
                           }
-                          window.open(`/preview/${draftTemplate?.slug || 'classic'}`, '_blank');
                         }}
-                        className="relative aspect-[4/3] bg-gray-100 overflow-hidden cursor-pointer group/img"
+                        className="relative aspect-[4/3] bg-gray-100 overflow-hidden cursor-pointer group/img block"
                         title="Klik untuk Pratinjau (Preview)"
                       >
                         <img
@@ -2229,12 +2232,12 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
                             <Eye className="w-3 h-3" /> Preview
                           </span>
                         </div>
-                        <div className="absolute top-3 left-3">
+                        <div className="absolute top-3 left-3" onClick={(e) => e.stopPropagation()}>
                           <span className="px-2.5 py-1 bg-white/95 backdrop-blur-sm shadow-sm font-semibold rounded-lg text-[10px] text-gray-800">
                             {draftTemplate.category}
                           </span>
                         </div>
-                      </div>
+                      </a>
                       <div className="p-4 space-y-2">
                         <h4 className="font-bold text-gray-900 text-sm line-clamp-1">{draftTemplate.name || 'Menunggu input nama...'}</h4>
                         <div className="flex items-center justify-between">
@@ -2251,18 +2254,19 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
 
                   {/* Actions to sandboxing trigger preview and build */}
                   <div className="flex gap-2.5 mt-4">
-                    <button
-                      type="button"
+                    <a
+                      href={`/preview/${draftTemplate?.slug || 'classic'}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       onClick={() => {
                         if (draftTemplate) {
                           localStorage.setItem(`draft_template_${draftTemplate.slug || 'classic'}`, JSON.stringify(draftTemplate));
                         }
-                        window.open(`/preview/${draftTemplate?.slug || 'classic'}`, '_blank');
                       }}
                       className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-1.5"
                     >
                       <Eye className="w-4 h-4" /> Preview
-                    </button>
+                    </a>
                     <button
                       type="button"
                       disabled={saving}
@@ -2338,15 +2342,17 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
                 {filteredTemplates.map((tpl) => (
                   <div
                     key={tpl.id}
-                    className="group bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition duration-250 flex flex-col justify-between"
+                    className="group bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition duration-250 flex flex-col justify-between relative"
                   >
                     {/* Visual Media Cover */}
-                    <div
+                    <a
+                      href={tpl.preview_url?.startsWith('http') ? tpl.preview_url : `/preview/${tpl.slug || 'classic'}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       onClick={() => {
                         localStorage.setItem(`draft_template_${tpl.slug || 'classic'}`, JSON.stringify(tpl));
-                        window.open(tpl.preview_url?.startsWith('http') ? tpl.preview_url : `/preview/${tpl.slug || 'classic'}`, '_blank');
                       }}
-                      className="relative aspect-[4/3] bg-gray-100 overflow-hidden cursor-pointer group/img"
+                      className="relative aspect-[4/3] bg-gray-100 overflow-hidden cursor-pointer group/img block"
                       title="Klik untuk Pratinjau (Preview)"
                     >
                       <img
@@ -2358,43 +2364,43 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
                       {/* Hover overlay with Eye icon */}
                       <div className="absolute inset-0 bg-black/10 opacity-0 group-hover/img:opacity-100 transition duration-200 flex items-center justify-center">
                         <span className="bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold py-1 px-2.5 rounded-full flex items-center gap-1 shadow-md">
-                          <Eye className="w-3 h-3" /> Preview
+                          <Eye className="w-3.5 h-3.5" /> Preview
                         </span>
                       </div>
+                    </a>
 
-                      {/* Active/Draft tag badge */}
-                      <div className="absolute top-3 left-3 flex gap-1 items-center">
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/95 backdrop-blur-sm shadow-sm text-gray-850">
-                          {tpl.category}
-                        </span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleToggleStatus(tpl); }}
-                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition ${tpl.status === 'active'
-                            ? 'bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600'
-                            : 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200'
-                            }`}
-                        >
-                          {tpl.status === 'active' ? 'Aktif' : 'Draf'}
-                        </button>
-                      </div>
+                    {/* Active/Draft tag badge */}
+                    <div className="absolute top-3 left-3 flex gap-1 items-center z-10" onClick={(e) => e.stopPropagation()}>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/95 backdrop-blur-sm shadow-sm text-gray-850">
+                        {tpl.category}
+                      </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleToggleStatus(tpl); }}
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition ${tpl.status === 'active'
+                          ? 'bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600'
+                          : 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200'
+                          }`}
+                      >
+                        {tpl.status === 'active' ? 'Aktif' : 'Draf'}
+                      </button>
+                    </div>
 
-                      {/* Deletions Trigger inside Cover */}
-                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition duration-200 flex gap-1">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); openEditModal(tpl); }}
-                          className="p-1.5 bg-white/95 hover:bg-white text-blue-600 rounded-lg hover:text-blue-700 shadow transition"
-                          title="Ubah Metadata"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteTemplate(tpl.id, tpl.name); }}
-                          className="p-1.5 bg-white/95 hover:bg-white text-rose-600 rounded-lg hover:text-rose-700 shadow transition"
-                          title="Hapus Dari Sistem"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                    {/* Deletions Trigger inside Cover */}
+                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition duration-200 flex gap-1 z-10">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openEditModal(tpl); }}
+                        className="p-1.5 bg-white/95 hover:bg-white text-blue-600 rounded-lg hover:text-blue-700 shadow transition"
+                        title="Ubah Metadata"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteTemplate(tpl.id, tpl.name); }}
+                        className="p-1.5 bg-white/95 hover:bg-white text-rose-600 rounded-lg hover:text-rose-700 shadow transition"
+                        title="Hapus Dari Sistem"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
 
                     {/* Meta information tags */}
@@ -2410,15 +2416,17 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
                         </span>
 
                         {/* Interactive live preview frame preview button */}
-                        <button
+                        <a
+                          href={tpl.preview_url?.startsWith('http') ? tpl.preview_url : `/preview/${tpl.slug || 'classic'}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           onClick={() => {
                             localStorage.setItem(`draft_template_${tpl.slug || 'classic'}`, JSON.stringify(tpl));
-                            window.open(tpl.preview_url?.startsWith('http') ? tpl.preview_url : `/preview/${tpl.slug || 'classic'}`, '_blank');
                           }}
                           className="text-xs font-bold bg-gray-55 hover:bg-primary-50 text-gray-750 hover:text-primary-600 transition px-3 py-1.5 rounded-lg border border-gray-150 hover:border-primary-100 flex items-center gap-1"
                         >
                           <Eye className="w-3.5 h-3.5" /> Preview
-                        </button>
+                        </a>
                       </div>
                     </div>
                   </div>

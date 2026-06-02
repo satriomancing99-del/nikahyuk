@@ -1321,6 +1321,51 @@ export default function CreateInvitation() {
       return;
     }
 
+    // Open new tab synchronously first to bypass popup blocker
+    const previewWindow = window.open('about:blank', '_blank');
+    if (previewWindow) {
+      previewWindow.document.write(`
+        <html>
+          <head>
+            <title>Mempersiapkan Pratinjau...</title>
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                margin: 0;
+                background-color: #f9fafb;
+                color: #374151;
+              }
+              .spinner {
+                border: 3px solid #f3f3f3;
+                border-top: 3px solid #db2777;
+                border-radius: 50%;
+                width: 32px;
+                height: 32px;
+                animation: spin 1s linear infinite;
+                margin-bottom: 16px;
+              }
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+              h2 { font-size: 16px; font-weight: 600; margin: 0 0 8px 0; }
+              p { font-size: 12px; color: #6b7280; margin: 0; }
+            </style>
+          </head>
+          <body>
+            <div class="spinner"></div>
+            <h2>Mempersiapkan Pratinjau</h2>
+            <p>Mohon tunggu sebentar, sedang memproses gambar Anda...</p>
+          </body>
+        </html>
+      `);
+    }
+
     try {
       setLoading(true);
 
@@ -1550,9 +1595,14 @@ export default function CreateInvitation() {
           }
         }
       }
-      window.open(`/preview/${selectedTemplate.slug}?preview=true`, '_blank');
+      if (previewWindow) {
+        previewWindow.location.href = `/preview/${selectedTemplate.slug}?preview=true`;
+      }
     } catch (e) {
       console.error('Error generating base64 draft preview:', e);
+      if (previewWindow) {
+        previewWindow.close();
+      }
       alert('Gagal mempersiapkan pratinjau gambar kustom.');
     } finally {
       setLoading(false);
