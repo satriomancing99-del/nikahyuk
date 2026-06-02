@@ -461,12 +461,13 @@ Tulis konfigurasi metadata template Anda dengan format JSON berikut:
 }
 
 2. DESAIN ESTETIKA & DIVERSIFIKASI LAYOUT (AESTHETIC & DIVERSE DESIGN GUIDELINES):
+- **PETUNJUK TEMA UNIVERSAL (PENTING)**: Secara default, buatlah tema desain yang universal, netral, dan cocok untuk seluruh agama/tradisi (seperti Classic, Rustic, Floral, atau Minimalist) dengan kutipan cinta/pernikahan yang romantis secara universal, KECUALI jika pengguna secara spesifik meminta tema keagamaan tertentu (seperti Islamic).
 - JANGAN terpaku pada 1 model desain standar. Buatlah desain, struktur layout, kombinasi warna, border-radius, font, gaya ilustrasi, ilustrasi, grid foto (hindari tata letak baris kotak seragam yang monoton dan membosankan), bingkai foto dan transisi yang SEPENUHNYA UNIK, berbeda, inovatif, dan berkelas dunia untuk setiap kategori:
   * **Rustic/Botanical**: Gunakan earthy tones (cokelat pasir, krem lembut, hijau zaitun), font serif bernuansa klasik, dekorasi botani minimalis, border melengkung organik yang halus, dan nuansa kertas daur ulang bertekstur.
   * **Minimalist/Bento-Grid**: Tata letak asimetris kontemporer berbasis kotak (bento-style grid) tanpa border melingkar kasar, menggunakan ruang putih (white space) yang luas, tipografi sans-serif uppercase tipis pelengkap, dan skema warna monokromatik modern berserat mewah.
   * **Islamic/Arabesque**: Gabungkan ornamen kubah masjid halus, pola geometris islami (Arabesque), latar belakang hijau emerald tua yang berpadu dengan aksen emas bercahaya premium.
   * **Floral/Soft Romantic**: Didominasi sapuan cat air bunga pastel (mawar lembut, cherry blossom), font kaligrafi meliuk anggun, dan transisi fade-in memudar yang lambat and romantis.
-  * **Elegant Premium Dark Mode**: Menggunakan latar belakang gelap pekat (charcoal, obsidian, deep space) dengan kontras tinggi dari teks dan ornamen bergradasi emas berkilau mewah serta pembatas garis ultra-tipis yang futuristik.
+  * **Elegant Premium Dark Mode**: Menggunakan latar belakang gelap pekat (charcoal, obsidian, deep space) dengan kontras tinggi dari teks and ornamen bergradasi emas berkilau mewah serta pembatas garis ultra-tipis yang futuristik.
 - JANGAN PERNAH menggunakan animasi loop berulang (seperti \`repeat: Infinity\`) pada elemen teks statis seperti judul bagian ("Momen Bahagia", "Countdown Pernikahan", dll.), nama mempelai, kutipan, dan teks detail. Animasi loop berulang membuat teks berkedip (blink) terus-menerus dan merusak estetika premium. Semua teks hanya boleh memiliki animasi masuk (entrance animation) SEKALI saat pertama kali dimunculkan di layar.
 - STRUKTUR KODE REACT YANG BENAR: JANGAN mendefinisikan komponen React lain di dalam fungsi komponen utama Anda (Nested Component Declarations). Mendeklarasikan komponen di dalam komponen lain akan merusak Virtual DOM React, memaksa DOM ter-mount ulang secara penuh pada setiap perubahan status (seperti setiap detik saat hitung mundur diperbarui), yang mengakibatkan animasi masuk terpipu berulang kali dan teks berkedip secara konstan (flashing/blinking). Semua sub-bagian wajib ditulis langsung di dalam badan render utama atau dideklarasikan sebagai fungsi pembantu standar di luar komponen utama!
 - PENGATURAN ORIENTASI & ASPEK RASIO FOTO (DEFENSIVE IMAGE HANDLING):
@@ -482,8 +483,8 @@ Agar tidak terjadi error "Cannot read properties of undefined", wajib gunakan op
   * mempelai?.groom_parent (Orang tua pria, default: "Bpk. Heri Pratama & Ibu Shinta")
   * mempelai?.bride_name (Nama mempelai wanita, default: "Aulia Rahmawati")
   * mempelai?.bride_parent (Orang tua wanita, default: "Bpk. Ahmad Rahmawan & Ibu Lestari")
-  * mempelai?.quote (Kutipan doa/cinta, default: "Dan di antara tanda-tanda kebesaran-Nya...")
-  * mempelai?.greeting (Salam pembuka keagamaan/universal kustomer, default: "Assalamu'alaikum Warahmatullahi Wabarakatuh". Wajib gunakan variabel ini agar seksi greeting/salam pembuka di undangan dinamis mengikuti agama kustomer!)
+  * mempelai?.quote (Kutipan doa/cinta, default: "Hari ini kami memulai perjalanan baru bersama, menyatukan dua hati dalam cinta, rasa syukur, dan harmoni selamanya...")
+  * mempelai?.greeting (Salam pembuka keagamaan/universal kustomer, default: "Selamat Pagi/Siang/Sore/Malam, dengan penuh rasa syukur dan bahagia...". Wajib gunakan variabel ini agar seksi greeting/salam pembuka di undangan dinamis mengikuti agama/tradisi kustomer!)
   * mempelai?.love_story (Kisah cinta pasangan)
   * mempelai?.music_url ${bgmText}
   * mempelai?.thumbnail_url (PENTING: Ini adalah URL foto utama/cover utama hasil upload customer. Gunakan sebagai latar belakang cover utama, hero banner, atau cover pembuka undangan.)
@@ -1101,12 +1102,42 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
         payload.created_by = user.id;
       }
 
-      await templateService.create(payload);
+      // Check if a template with the same slug already exists
+      const { data: existingTemplate, error: checkError } = await supabase
+        .from('templates')
+        .select('id, created_by')
+        .eq('slug', finalSlug)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      let isUpdate = false;
+      if (existingTemplate) {
+        const isOwner = user?.id && existingTemplate.created_by === user.id;
+        const isAdmin = profile?.role === 'super_admin';
+
+        if (isAdmin || isOwner) {
+          await templateService.update(existingTemplate.id, payload);
+          isUpdate = true;
+        } else {
+          throw new Error('Slug template ini sudah terdaftar oleh pengguna lain. Silakan ganti "Custom Slug" Anda.');
+        }
+      } else {
+        await templateService.create(payload);
+      }
 
       if (profile?.role === 'customer') {
-        setSuccessMsg(`Selamat! Template "${payload.name}" berhasil diajukan untuk ditinjau oleh Admin.`);
+        if (isUpdate) {
+          setSuccessMsg(`Template "${payload.name}" berhasil diperbarui.`);
+        } else {
+          setSuccessMsg(`Selamat! Template "${payload.name}" berhasil diajukan untuk ditinjau oleh Admin.`);
+        }
       } else {
-        setSuccessMsg(`Template "${payload.name}" berhasil diunggah dan disimpan ke database.`);
+        if (isUpdate) {
+          setSuccessMsg(`Template "${payload.name}" berhasil diperbarui di database.`);
+        } else {
+          setSuccessMsg(`Template "${payload.name}" berhasil diunggah dan disimpan ke database.`);
+        }
       }
       setDraftTemplate(null);
       setDraftFiles([]);
