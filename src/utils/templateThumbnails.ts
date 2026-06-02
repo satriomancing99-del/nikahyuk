@@ -1013,15 +1013,21 @@ export const getTemplateThumbnail = (slug: string, category?: string, price?: nu
 
   switch (resolvedSlug) {
     // --- CLASSIC CATEGORY ---
+    // Skin: warm fair (#fde5d9), Hair: dark brown (#3b2314)
     case 'classic-silver':
       return svgToBase64(createCoupleSvg({
         ...baseOptions,
+        groomSkin: '#fde5d9',
+        brideSkin: '#fde5d9',
+        groomHairColor: '#3b2314',
         background: classicBg('silver'),
         bgDecorations: classicDecorations('silver'),
         groomHairType: 'hair',
         groomSuitColor: '#4f5d75', // Silver-greyish blue suit
         groomVestColor: '#2d3748',
         groomBoutonniere: `<circle cx="225" cy="280" r="5" fill="#ffffff" /><path d="M 220 285 L 225 292" stroke="#4caf50" stroke-width="2" />`,
+        brideHijabColor: undefined, // modern hair
+        brideDressColor: '#f0ecee',
         brideCrown: classicCrown('silver'),
         brideBouquet: classicBouquet('silver'),
       } as SvgOptions));
@@ -1029,12 +1035,17 @@ export const getTemplateThumbnail = (slug: string, category?: string, price?: nu
     case 'classic-gold':
       return svgToBase64(createCoupleSvg({
         ...baseOptions,
+        groomSkin: '#fde5d9',
+        brideSkin: '#fde5d9',
+        groomHairColor: '#3b2314',
         background: classicBg('gold'),
         bgDecorations: classicDecorations('gold'),
         groomHairType: 'hair',
         groomSuitColor: '#1d3557', // Royal navy blue suit
         groomVestColor: '#b8943a', // Gold vest
         groomBoutonniere: `<circle cx="225" cy="280" r="6" fill="#d4af37" /><path d="M 220 285 L 225 292" stroke="#4caf50" stroke-width="2" />`,
+        brideHijabColor: undefined, // modern hair
+        brideDressColor: '#faf5ef',
         brideCrown: classicCrown('gold'),
         brideBouquet: classicBouquet('gold'),
       } as SvgOptions));
@@ -1042,20 +1053,29 @@ export const getTemplateThumbnail = (slug: string, category?: string, price?: nu
     case 'classic-platinum':
       return svgToBase64(createCoupleSvg({
         ...baseOptions,
+        groomSkin: '#fde5d9',
+        brideSkin: '#fde5d9',
+        groomHairColor: '#1c1108',
         background: classicBg('platinum'),
         bgDecorations: classicDecorations('platinum'),
         groomHairType: 'hair',
         groomSuitColor: '#1a1a1a', // Obsidian black tuxedo
         groomVestColor: '#3a1e2b', // Burgundy vest
         groomBoutonniere: `<circle cx="225" cy="280" r="6" fill="#e91e63" /><path d="M 220 285 L 225 292" stroke="#4caf50" stroke-width="2" />`,
+        brideHijabColor: undefined, // modern hair
+        brideDressColor: '#ededed',
         brideCrown: classicCrown('gold'),
         brideBouquet: classicBouquet('platinum'),
       } as SvgOptions));
 
     // --- RUSTIC CATEGORY ---
+    // Skin: olive/tan (#e8c4a0), Hair: auburn/reddish-brown (#6b3a2a)
     case 'rustic-silver':
       return svgToBase64(createCoupleSvg({
         ...baseOptions,
+        groomSkin: '#e8c4a0',
+        brideSkin: '#ebd0b0',
+        groomHairColor: '#6b3a2a',
         background: rusticBg('silver'),
         bgDecorations: rusticDecorations('silver'),
         groomHairType: 'hair',
@@ -1072,6 +1092,9 @@ export const getTemplateThumbnail = (slug: string, category?: string, price?: nu
     case 'rustic-gold':
       return svgToBase64(createCoupleSvg({
         ...baseOptions,
+        groomSkin: '#e8c4a0',
+        brideSkin: '#ebd0b0',
+        groomHairColor: '#6b3a2a',
         background: rusticBg('gold'),
         bgDecorations: rusticDecorations('gold'),
         groomHairType: 'hair',
@@ -1087,6 +1110,9 @@ export const getTemplateThumbnail = (slug: string, category?: string, price?: nu
     case 'rustic-platinum':
       return svgToBase64(createCoupleSvg({
         ...baseOptions,
+        groomSkin: '#e8c4a0',
+        brideSkin: '#ebd0b0',
+        groomHairColor: '#4a2015',
         background: rusticBg('platinum'),
         bgDecorations: rusticDecorations('platinum'),
         groomHairType: 'hair',
@@ -1100,16 +1126,22 @@ export const getTemplateThumbnail = (slug: string, category?: string, price?: nu
       } as SvgOptions));
 
     // --- MINIMALIST CATEGORY ---
+    // Skin: light cool/porcelain (#f5ddd5), Hair: jet black (#111111)
     case 'minimalist-silver':
       return svgToBase64(createCoupleSvg({
         ...baseOptions,
+        groomSkin: '#f5ddd5',
+        brideSkin: '#f5ddd5',
+        groomHairColor: '#111111',
         background: minimalistBg('silver'),
         bgDecorations: minimalistDecorations('silver'),
         groomHairType: 'hair',
         groomSuitColor: '#bdc3c7', // Simple grey blazer
         groomVestColor: '#ffffff',
+        groomShirtColor: '#f5f5f5',
         groomBoutonniere: `<circle cx="225" cy="280" r="4" fill="#ffffff" /><path d="M 220 285 L 225 290" stroke="#bdc3c7" stroke-width="1.5" />`,
         brideHijabColor: undefined, // modern sleek hair
+        brideDressColor: '#f0f0f0',
         brideCrown: minimalistCrown('silver'),
         brideBouquet: minimalistBouquet(),
       } as SvgOptions));
@@ -1117,6 +1149,9 @@ export const getTemplateThumbnail = (slug: string, category?: string, price?: nu
     case 'minimalist-gold':
       return svgToBase64(createCoupleSvg({
         ...baseOptions,
+        groomSkin: '#f5ddd5',
+        brideSkin: '#f5ddd5',
+        groomHairColor: '#111111',
         background: minimalistBg('gold'),
         bgDecorations: minimalistDecorations('gold'),
         groomHairType: 'hair',
@@ -1133,6 +1168,9 @@ export const getTemplateThumbnail = (slug: string, category?: string, price?: nu
     case 'minimalist-platinum':
       return svgToBase64(createCoupleSvg({
         ...baseOptions,
+        groomSkin: '#f5ddd5',
+        brideSkin: '#f5ddd5',
+        groomHairColor: '#0a0a0a',
         background: minimalistBg('platinum'),
         bgDecorations: minimalistDecorations('platinum'),
         groomHairType: 'hair',
@@ -1146,15 +1184,22 @@ export const getTemplateThumbnail = (slug: string, category?: string, price?: nu
       } as SvgOptions));
 
     // --- ISLAMIC CATEGORY ---
+    // Skin: warm golden/medium (#ddb896), Hair: dark (#1a1a1a) / Hijab covers
     case 'islamic-silver':
       return svgToBase64(createCoupleSvg({
         ...baseOptions,
+        groomSkin: '#ddb896',
+        brideSkin: '#ddb896',
+        groomHairColor: '#1a1a1a',
         background: islamicBg('silver'),
         bgDecorations: islamicDecorations('silver'),
         groomHairType: 'peci',
         groomSuitColor: '#78909c', // Silver-grey koko/suit
         groomVestColor: '#ffffff',
+        groomShirtColor: '#f0f0f0',
         groomBoutonniere: `<circle cx="225" cy="280" r="5" fill="#e8f5ee" /><path d="M 220 285 L 225 292" stroke="#2e6031" stroke-width="2" />`,
+        brideHijabColor: '#e8f0ea',
+        brideDressColor: '#f7faf8',
         brideCrown: islamicCrown('silver'),
         brideBouquet: islamicBouquet('silver'),
       } as SvgOptions));
@@ -1163,12 +1208,17 @@ export const getTemplateThumbnail = (slug: string, category?: string, price?: nu
     case 'islamic-gold':
       return svgToBase64(createCoupleSvg({
         ...baseOptions,
+        groomSkin: '#ddb896',
+        brideSkin: '#ddb896',
+        groomHairColor: '#1a1a1a',
         background: islamicBg('gold'),
         bgDecorations: islamicDecorations('gold'),
         groomHairType: 'peci',
         groomSuitColor: '#b89f8d', // Sand brown suit
         groomVestColor: '#ab8f7e',
         groomBoutonniere: `<circle cx="225" cy="280" r="5" fill="#ffe082" /><path d="M 220 285 L 225 292" stroke="#ffb300" stroke-width="2" />`,
+        brideHijabColor: '#fce4ec',
+        brideDressColor: '#fff5f5',
         brideCrown: islamicCrown('gold'),
         brideBouquet: islamicBouquet('gold'),
       } as SvgOptions));
@@ -1176,20 +1226,29 @@ export const getTemplateThumbnail = (slug: string, category?: string, price?: nu
     case 'islamic-platinum':
       return svgToBase64(createCoupleSvg({
         ...baseOptions,
+        groomSkin: '#ddb896',
+        brideSkin: '#ddb896',
+        groomHairColor: '#0d0d0d',
         background: islamicBg('platinum'),
         bgDecorations: islamicDecorations('platinum'),
         groomHairType: 'peci',
         groomSuitColor: '#102e1a', // Deep emerald green/black suit
         groomVestColor: '#b8943a',
         groomBoutonniere: `<circle cx="225" cy="280" r="6" fill="#d4af37" /><path d="M 220 285 L 225 292" stroke="#d4af37" stroke-width="2" />`,
+        brideHijabColor: '#f5f0e0',
+        brideDressColor: '#faf8f0',
         brideCrown: islamicCrown('platinum'),
         brideBouquet: islamicBouquet('platinum'),
       } as SvgOptions));
 
     // --- FLORAL CATEGORY ---
+    // Skin: rosy fair (#f8d5c8), Hair: dark chestnut (#4a2820)
     case 'floral-silver':
       return svgToBase64(createCoupleSvg({
         ...baseOptions,
+        groomSkin: '#f8d5c8',
+        brideSkin: '#fae0d6',
+        groomHairColor: '#4a2820',
         background: floralBg('silver'),
         bgDecorations: floralDecorations('silver'),
         groomHairType: 'hair',
@@ -1205,6 +1264,9 @@ export const getTemplateThumbnail = (slug: string, category?: string, price?: nu
     case 'floral-gold':
       return svgToBase64(createCoupleSvg({
         ...baseOptions,
+        groomSkin: '#f8d5c8',
+        brideSkin: '#fae0d6',
+        groomHairColor: '#4a2820',
         background: floralBg('gold'),
         bgDecorations: floralDecorations('gold'),
         groomHairType: 'hair',
@@ -1221,6 +1283,9 @@ export const getTemplateThumbnail = (slug: string, category?: string, price?: nu
     case 'floral-platinum':
       return svgToBase64(createCoupleSvg({
         ...baseOptions,
+        groomSkin: '#f8d5c8',
+        brideSkin: '#fae0d6',
+        groomHairColor: '#2d1810',
         background: floralBg('platinum'),
         bgDecorations: floralDecorations('platinum'),
         groomHairType: 'hair',
