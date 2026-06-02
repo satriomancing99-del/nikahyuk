@@ -928,7 +928,78 @@ const floralBouquet = (tier: string) => {
 
 // =================== TEMPLATE CONSTRUCTORS ===================
 
-export const getTemplateThumbnail = (slug: string): string => {
+export const getTemplateThumbnail = (slug: string, category?: string, price?: number): string => {
+  const lowerSlug = (slug || '').toLowerCase();
+  
+  // Resolve category
+  let cat = 'classic';
+  const lowerCat = (category || '').toLowerCase();
+  if (lowerCat.includes('classic') || lowerSlug.includes('classic')) {
+    cat = 'classic';
+  } else if (lowerCat.includes('rustic') || lowerSlug.includes('rustic')) {
+    cat = 'rustic';
+  } else if (lowerCat.includes('minimalist') || lowerSlug.includes('minimalist')) {
+    cat = 'minimalist';
+  } else if (lowerCat.includes('islamic') || lowerSlug.includes('islamic')) {
+    cat = 'islamic';
+  } else if (lowerCat.includes('floral') || lowerSlug.includes('floral')) {
+    cat = 'floral';
+  } else if (lowerCat.includes('typography') || lowerSlug.includes('typography') || lowerSlug.includes('typique')) {
+    cat = 'typography';
+  } else {
+    cat = 'classic';
+  }
+
+  // Resolve tier (price)
+  let tier: 'silver' | 'gold' | 'platinum' = 'silver';
+  if (price !== undefined && price !== null) {
+    const numPrice = Number(price);
+    if (numPrice >= 140000) {
+      tier = 'platinum';
+    } else if (numPrice > 0) {
+      tier = 'gold';
+    } else {
+      tier = 'silver';
+    }
+  } else {
+    if (lowerSlug.includes('platinum')) {
+      tier = 'platinum';
+    } else if (lowerSlug.includes('gold') || lowerSlug === 'rustic' || lowerSlug === 'islamic' || lowerSlug === 'minimalist' || lowerSlug === 'floral') {
+      tier = 'gold';
+    } else {
+      tier = 'silver';
+    }
+  }
+
+  // Check if it's already a known slug
+  const KNOWN_SLUGS = [
+    'classic-silver', 'classic-gold', 'classic-platinum',
+    'rustic-silver', 'rustic', 'rustic-gold', 'rustic-platinum',
+    'minimalist-silver', 'minimalist-gold', 'minimalist', 'minimalist-platinum',
+    'islamic-silver', 'islamic', 'islamic-gold', 'islamic-platinum',
+    'floral-silver', 'floral-gold', 'floral', 'floral-platinum',
+    'elegance-typique'
+  ];
+
+  let resolvedSlug = slug;
+  if (!KNOWN_SLUGS.includes(slug)) {
+    if (cat === 'typography') {
+      resolvedSlug = 'elegance-typique';
+    } else if (cat === 'classic') {
+      resolvedSlug = `classic-${tier}`;
+    } else if (cat === 'rustic') {
+      resolvedSlug = tier === 'gold' ? 'rustic' : `rustic-${tier}`;
+    } else if (cat === 'minimalist') {
+      resolvedSlug = tier === 'platinum' ? 'minimalist' : `minimalist-${tier}`;
+    } else if (cat === 'islamic') {
+      resolvedSlug = tier === 'gold' ? 'islamic' : `islamic-${tier}`;
+    } else if (cat === 'floral') {
+      resolvedSlug = tier === 'platinum' ? 'floral' : `floral-${tier}`;
+    } else {
+      resolvedSlug = `classic-${tier}`;
+    }
+  }
+
   const baseOptions: Partial<SvgOptions> = {
     groomSkin: '#fde5d9',
     groomHairType: 'peci',
@@ -940,7 +1011,7 @@ export const getTemplateThumbnail = (slug: string): string => {
     extraForeGround: coupleFloaters(),
   };
 
-  switch (slug) {
+  switch (resolvedSlug) {
     // --- CLASSIC CATEGORY ---
     case 'classic-silver':
       return svgToBase64(createCoupleSvg({

@@ -32,6 +32,7 @@ export interface Invitation {
   groom_parent: string;
   bride_parent: string;
   quote: string;
+  greeting?: string;
   love_story: string;
   music_url: string;
   thumbnail_url: string;

@@ -1,0 +1,38 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = "https://mcjydsmutpqzmzftmvqy.supabase.co";
+const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1janlkc211dHBxem16ZnRtdnF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3NzQ0MzMsImV4cCI6MjA5NTM1MDQzM30.Jg6opGrfTK2bj7F1V5fdsjYLAb5MiVojE3p97449WFc";
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+async function run() {
+  console.log("Fetching all templates to search for religious greetings...");
+  const { data: templates, error } = await supabase
+    .from('templates')
+    .select('id, name, slug, jsx_code');
+
+  if (error) {
+    console.error("Error fetching templates:", error);
+    return;
+  }
+
+  console.log(`Fetched ${templates?.length || 0} templates.`);
+  
+  for (const t of templates || []) {
+    const code = t.jsx_code || '';
+    if (code.toLowerCase().includes('assalamu') || code.toLowerCase().includes('bismillah') || code.toLowerCase().includes('rahmat')) {
+      console.log(`\n==========================================`);
+      console.log(`MATCH FOUND in template: "${t.name}" (slug: "${t.slug}", id: "${t.id}")`);
+      
+      const lines = code.split('\n');
+      lines.forEach((line, idx) => {
+        if (line.toLowerCase().includes('assalamu') || line.toLowerCase().includes('bismillah') || line.toLowerCase().includes('rahmat')) {
+          console.log(`Line ${idx + 1}: ${line.trim()}`);
+        }
+      });
+    }
+  }
+  console.log("\nSearch complete!");
+}
+
+run();

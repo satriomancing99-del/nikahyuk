@@ -306,8 +306,10 @@ export default function CreateInvitation() {
         bride_name: '',
         bride_parent: '',
         quote: 'Dan di antara tanda-tanda (kebesaran)-Nya ialah Dia menciptakan pasangan-pasangan untukmu dari jenismu sendiri, agar kamu cenderung dan merasa tenteram kepadanya, dan Dia menjadikan di antaramu rasa kasih dan sayang.',
+        greeting: "Assalamu'alaikum Warahmatullahi Wabarakatuh",
         love_story: '',
       });
+      setSelectedReligion('Islam');
       setEventAkad({
         title: 'Akad Nikah',
         date: '',
@@ -351,12 +353,42 @@ export default function CreateInvitation() {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
 
   // Step 2: Bride and Groom Data
+  const RELIGION_PRESETS = {
+    Islam: {
+      greeting: "Assalamu'alaikum Warahmatullahi Wabarakatuh",
+      quote: "Dan di antara tanda-tanda (kebesaran)-Nya ialah Dia menciptakan pasangan-pasangan untukmu dari jenismu sendiri, agar kamu cenderung dan merasa tenteram kepadanya, dan Dia menjadikan di antaramu rasa kasih dan sayang. Sungguh, pada yang demikian itu terdapat tanda-tanda (kebesaran Allah) bagi kaum yang berpikir. (Ar-Rum: 21)"
+    },
+    Kristen: {
+      greeting: "Salam Sejahtera dalam Kasih Tuhan Yesus Kristus",
+      quote: "Demikianlah mereka bukan lagi dua, melainkan satu. Karena itu, apa yang telah dipersatukan Allah, tidak boleh diceraikan manusia. (Matius 19:6)"
+    },
+    Katolik: {
+      greeting: "Salam Sejahtera dalam Kasih Kristus",
+      quote: "Dan di atas semuanya itu: kenakanlah kasih, sebagai pengikat yang mempersatukan dan menyempurnakan. (Kolose 3:14)"
+    },
+    Hindu: {
+      greeting: "Om Swastyastu",
+      quote: "Semoga sepasang mempelai ini selalu setia satu sama lain, tidak terpisahkan, dan menikmati kehidupan yang penuh kebahagiaan bersama keturunan mereka di rumah yang damai. (Rig Veda X.85.42)"
+    },
+    Buddha: {
+      greeting: "Namo Buddhaya",
+      quote: "Pikiran yang diarahkan secara benar akan membimbing seseorang menuju kebahagiaan dan harmoni dalam hidup bersama, seperti bunga yang indah dan semerbak wanginya. (Dhammapada)"
+    },
+    Nasional: {
+      greeting: "Salam Sejahtera bagi Kita Semua",
+      quote: "Pernikahan bukanlah tentang menemukan seseorang yang sempurna untuk hidup bersama, melainkan tentang belajar melihat keindahan dalam ketidaksempurnaan dan berjalan beriringan dengan penuh kasih sayang."
+    }
+  };
+
+  const [selectedReligion, setSelectedReligion] = useState('Islam');
+
   const [mempelai, setMempelai] = useState({
     groom_name: '',
     groom_parent: '',
     bride_name: '',
     bride_parent: '',
     quote: 'Dan di antara tanda-tanda (kebesaran)-Nya ialah Dia menciptakan pasangan-pasangan untukmu dari jenismu sendiri, agar kamu cenderung dan merasa tenteram kepadanya, dan Dia menjadikan di antaramu rasa kasih dan sayang.',
+    greeting: "Assalamu'alaikum Warahmatullahi Wabarakatuh",
     love_story: '',
   });
 
@@ -770,8 +802,24 @@ export default function CreateInvitation() {
           bride_name: inv.bride_name || '',
           bride_parent: inv.bride_parent || '',
           quote: inv.quote || '',
+          greeting: inv.greeting || "Assalamu'alaikum Warahmatullahi Wabarakatuh",
           love_story: inv.love_story || '',
         });
+        
+        let religion = 'Islam';
+        if (inv.greeting) {
+          const lowerGreet = inv.greeting.toLowerCase();
+          if (lowerGreet.includes('shanti') || lowerGreet.includes('swastyastu')) {
+            religion = 'Hindu';
+          } else if (lowerGreet.includes('buddhaya')) {
+            religion = 'Buddha';
+          } else if (lowerGreet.includes('syalom') || lowerGreet.includes('yesus') || lowerGreet.includes('kristus')) {
+            religion = 'Kristen';
+          } else if (lowerGreet.includes('sejahtera') && !lowerGreet.includes('kristus')) {
+            religion = 'Nasional';
+          }
+        }
+        setSelectedReligion(religion);
         
         setCustomSlug(inv.slug || '');
         if (inv.thumbnail_url) {
@@ -1385,6 +1433,7 @@ export default function CreateInvitation() {
           bride_name: mempelai.bride_name || 'Mempelai Wanita',
           bride_parent: mempelai.bride_parent || 'Ayah & Ibu',
           quote: mempelai.quote,
+          greeting: mempelai.greeting,
           thumbnail_url: resolvedCoverUrl || selectedTemplate.thumbnail_url,
           love_story: mempelai.love_story || '',
           music_url: musicFile ? URL.createObjectURL(musicFile) : '',
@@ -1557,6 +1606,7 @@ export default function CreateInvitation() {
         groom_parent: mempelai.groom_parent,
         bride_parent: mempelai.bride_parent,
         quote: mempelai.quote,
+        greeting: mempelai.greeting,
         love_story: mempelai.love_story || '',
         status: 'published', // Active published
       };
@@ -1894,7 +1944,7 @@ export default function CreateInvitation() {
                     >
                       <div className="aspect-[4/3] bg-gray-100 overflow-hidden relative">
                         <img 
-                          src={getTemplateThumbnail(tpl.slug) || tpl.thumbnail_url} 
+                          src={getTemplateThumbnail(tpl.slug, tpl.category, tpl.price) || getTemplateThumbnail('classic-silver')} 
                           alt={tpl.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                           referrerPolicy="no-referrer"
@@ -2041,6 +2091,48 @@ export default function CreateInvitation() {
                     </label>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Format Agama & Salam Pembuka */}
+            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-150 grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">Agama / Tradisi Undangan</label>
+                <select
+                  value={selectedReligion}
+                  onChange={(e) => {
+                    const religion = e.target.value;
+                    setSelectedReligion(religion);
+                    const preset = (RELIGION_PRESETS as any)[religion];
+                    if (preset) {
+                      setMempelai(prev => ({
+                        ...prev,
+                        greeting: preset.greeting,
+                        quote: preset.quote
+                      }));
+                    }
+                  }}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm bg-white font-semibold text-gray-700"
+                >
+                  <option value="Islam">Islam (Default)</option>
+                  <option value="Kristen">Kristen / Protestan</option>
+                  <option value="Katolik">Katolik</option>
+                  <option value="Hindu">Hindu</option>
+                  <option value="Buddha">Buddha</option>
+                  <option value="Nasional">Nasional / Universal</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">Salam Pembuka Undangan</label>
+                <input
+                  type="text"
+                  required
+                  value={mempelai.greeting}
+                  onChange={(e) => setMempelai(prev => ({ ...prev, greeting: e.target.value }))}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm bg-white font-medium text-gray-700"
+                  placeholder="Contoh: Assalamualaikum Wr. Wb / Salam Sejahtera"
+                />
               </div>
             </div>
 

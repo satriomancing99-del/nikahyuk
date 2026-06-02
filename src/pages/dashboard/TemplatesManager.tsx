@@ -483,6 +483,7 @@ Agar tidak terjadi error "Cannot read properties of undefined", wajib gunakan op
   * mempelai?.bride_name (Nama mempelai wanita, default: "Aulia Rahmawati")
   * mempelai?.bride_parent (Orang tua wanita, default: "Bpk. Ahmad Rahmawan & Ibu Lestari")
   * mempelai?.quote (Kutipan doa/cinta, default: "Dan di antara tanda-tanda kebesaran-Nya...")
+  * mempelai?.greeting (Salam pembuka keagamaan/universal kustomer, default: "Assalamu'alaikum Warahmatullahi Wabarakatuh". Wajib gunakan variabel ini agar seksi greeting/salam pembuka di undangan dinamis mengikuti agama kustomer!)
   * mempelai?.love_story (Kisah cinta pasangan)
   * mempelai?.music_url ${bgmText}
   * mempelai?.thumbnail_url (PENTING: Ini adalah URL foto utama/cover utama hasil upload customer. Gunakan sebagai latar belakang cover utama, hero banner, atau cover pembuka undangan.)
@@ -1559,7 +1560,7 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
                     >
                       <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
                         <img
-                          src={getTemplateThumbnail(tpl.slug) || tpl.thumbnail_url}
+                          src={getTemplateThumbnail(tpl.slug, tpl.category, tpl.price) || getTemplateThumbnail('classic-silver')}
                           alt={tpl.name}
                           className="w-full h-full object-cover"
                         />
@@ -2186,7 +2187,7 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
                         title="Klik untuk Pratinjau (Preview)"
                       >
                         <img
-                          src={getTemplateThumbnail(draftTemplate.slug || '') || draftTemplate.thumbnail_url}
+                          src={getTemplateThumbnail(draftTemplate.slug || '', draftTemplate.category, draftTemplate.price) || getTemplateThumbnail('classic-silver')}
                           alt="Template Preview Sketch"
                           referrerPolicy="no-referrer"
                           className="w-full h-full object-cover group-hover/img:scale-105 transition duration-500"
@@ -2318,7 +2319,7 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
                       title="Klik untuk Pratinjau (Preview)"
                     >
                       <img
-                        src={getTemplateThumbnail(tpl.slug) || tpl.thumbnail_url}
+                        src={getTemplateThumbnail(tpl.slug, tpl.category, tpl.price) || getTemplateThumbnail('classic-silver')}
                         alt={tpl.name}
                         referrerPolicy="no-referrer"
                         className="w-full h-full object-cover group-hover/img:scale-105 transition duration-500"

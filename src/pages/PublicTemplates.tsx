@@ -436,7 +436,7 @@ export default function PublicTemplates() {
                   {/* Photo mockup Card */}
                   <div className="aspect-[16/9] bg-slate-50 relative overflow-hidden">
                     <img 
-                      src={getTemplateThumbnail(item.slug) || item.thumbnail_url || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=400'} 
+                      src={getTemplateThumbnail(item.slug, item.category, item.price) || getTemplateThumbnail('classic-silver')} 
                       alt={item.name} 
                       className="w-full h-full object-cover group-hover:scale-102 transition duration-300"
                     />
