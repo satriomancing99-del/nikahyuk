@@ -2,14 +2,165 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Palette, Plus, FileJson, FileArchive, ExternalLink, Eye, Trash2, Edit3,
   CheckCircle2, FolderOpen, AlertCircle, Coins, Layout, Smartphone, Monitor,
-  Loader2, Upload, Search, Filter, X, Check, RefreshCw, Code, Copy
+  Loader2, Upload, Search, Filter, X, Check, RefreshCw, Code, Copy,
+  Music, Play, Pause, Lock, Sparkles
 } from 'lucide-react';
 import JSZip from 'jszip';
-import { templateService } from '../../services';
-import { Template } from '../../types/database.types';
+import { templateService, musicLibraryService } from '../../services';
+import { Template, MusicLibrary } from '../../types/database.types';
+import { supabase } from '../../lib/supabase';
+import { useAuthStore } from '../../stores/authStore';
+import { getTemplateThumbnail } from '../../utils/templateThumbnails';
 
 // Supported category list
 const CATEGORIES = ['Classic', 'Rustic', 'Minimalist', 'Modern', 'Islamic', 'Floral', 'Premium', 'Typography'];
+
+const FALLBACK_TEMPLATES = [
+  {
+    name: 'Klasik Elegant Royal',
+    slug: 'classic-silver',
+    category: 'Classic',
+    price: 0,
+    thumbnail_url: getTemplateThumbnail('classic-silver'),
+    preview_url: '/preview/classic',
+    status: 'active'
+  },
+  {
+    name: 'Classic Royal Gold',
+    slug: 'classic-gold',
+    category: 'Classic',
+    price: 99000,
+    thumbnail_url: getTemplateThumbnail('classic-gold'),
+    preview_url: '/preview/classic',
+    status: 'active'
+  },
+  {
+    name: 'Classic Obsidian Velvet',
+    slug: 'classic-platinum',
+    category: 'Classic',
+    price: 149000,
+    thumbnail_url: getTemplateThumbnail('classic-platinum'),
+    preview_url: '/preview/classic',
+    status: 'active'
+  },
+  {
+    name: 'Rustic Warm Autumn',
+    slug: 'rustic-silver',
+    category: 'Rustic',
+    price: 0,
+    thumbnail_url: getTemplateThumbnail('rustic-silver'),
+    preview_url: '/preview/rustic',
+    status: 'active'
+  },
+  {
+    name: 'Rustic Modern Botanical',
+    slug: 'rustic',
+    category: 'Rustic',
+    price: 99000,
+    thumbnail_url: getTemplateThumbnail('rustic'),
+    preview_url: '/preview/rustic',
+    status: 'active'
+  },
+  {
+    name: 'Rustic Whispering Pines',
+    slug: 'rustic-platinum',
+    category: 'Rustic',
+    price: 149000,
+    thumbnail_url: getTemplateThumbnail('rustic-platinum'),
+    preview_url: '/preview/rustic',
+    status: 'active'
+  },
+  {
+    name: 'Minimalist Clean Slate',
+    slug: 'minimalist-silver',
+    category: 'Minimalist',
+    price: 0,
+    thumbnail_url: getTemplateThumbnail('minimalist-silver'),
+    preview_url: '/preview/minimalist',
+    status: 'active'
+  },
+  {
+    name: 'Minimalist Bento Grid',
+    slug: 'minimalist-gold',
+    category: 'Minimalist',
+    price: 99000,
+    thumbnail_url: getTemplateThumbnail('minimalist-gold'),
+    preview_url: '/preview/minimalist',
+    status: 'active'
+  },
+  {
+    name: 'Minimalist Premium Gold',
+    slug: 'minimalist',
+    category: 'Minimalist',
+    price: 149000,
+    thumbnail_url: getTemplateThumbnail('minimalist'),
+    preview_url: '/preview/minimalist',
+    status: 'active'
+  },
+  {
+    name: 'Islamic White Jasmine',
+    slug: 'islamic-silver',
+    category: 'Islamic',
+    price: 0,
+    thumbnail_url: getTemplateThumbnail('islamic-silver'),
+    preview_url: '/preview/islamic',
+    status: 'active'
+  },
+  {
+    name: 'Islamic Sakura Rahmat',
+    slug: 'islamic',
+    category: 'Islamic',
+    price: 99000,
+    thumbnail_url: getTemplateThumbnail('islamic'),
+    preview_url: '/preview/islamic',
+    status: 'active'
+  },
+  {
+    name: 'Islamic Emerald Arch',
+    slug: 'islamic-platinum',
+    category: 'Islamic',
+    price: 149000,
+    thumbnail_url: getTemplateThumbnail('islamic-platinum'),
+    preview_url: '/preview/islamic',
+    status: 'active'
+  },
+  {
+    name: 'Floral Sweet Lavender',
+    slug: 'floral-silver',
+    category: 'Floral',
+    price: 0,
+    thumbnail_url: getTemplateThumbnail('floral-silver'),
+    preview_url: '/preview/floral',
+    status: 'active'
+  },
+  {
+    name: 'Floral Garden Rose',
+    slug: 'floral-gold',
+    category: 'Floral',
+    price: 99000,
+    thumbnail_url: getTemplateThumbnail('floral-gold'),
+    preview_url: '/preview/floral',
+    status: 'active'
+  },
+  {
+    name: 'Floral Watercolor Blossom',
+    slug: 'floral',
+    category: 'Floral',
+    price: 149000,
+    thumbnail_url: getTemplateThumbnail('floral'),
+    preview_url: '/preview/floral',
+    status: 'active'
+  },
+  {
+    name: 'Elegance Typique Minimalist',
+    slug: 'elegance-typique',
+    category: 'Typography',
+    price: 0,
+    thumbnail_url: getTemplateThumbnail('elegance-typique'),
+    preview_url: '/preview/elegance-typique',
+    status: 'active'
+  }
+];
 
 const getDefaultJsxCodeForCategory = (category: string, name: string) => {
   const cat = category?.toLowerCase() || '';
@@ -195,8 +346,13 @@ export default function ClassicInvitation({ mempelai, events, gifts, gallery, wi
 };
 
 export default function TemplatesManager() {
+  const { profile, user } = useAuthStore();
   const [existingTemplates, setExistingTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Global Collaboration Toggle settings state
+  const [collaborationEnabled, setCollaborationEnabled] = useState(false);
+
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -237,8 +393,19 @@ export default function TemplatesManager() {
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [activePromptTier, setActivePromptTier] = useState<'silver' | 'gold' | 'platinum' | 'typography'>('gold');
 
+  // BGM (Background Music) library states
+  const [bgmList, setBgmList] = useState<MusicLibrary[]>([]);
+  const [bgmLoading, setBgmLoading] = useState(true);
+  const [newBgmFile, setNewBgmFile] = useState<File | null>(null);
+  const [newBgmTitle, setNewBgmTitle] = useState('');
+  const [newBgmArtist, setNewBgmArtist] = useState('');
+  const [isBgmUploading, setIsBgmUploading] = useState(false);
+  const [playingBgmId, setPlayingBgmId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
+
 
   const handleCopyPrompt = () => {
     let priceText = '99000';
@@ -251,7 +418,7 @@ export default function TemplatesManager() {
     if (activePromptTier === 'silver') {
       priceText = '49000';
       photoLimitText = 'Maksimal 3 Foto saja (slice array gallery ke maks 3 data, contoh: gallery?.slice(0, 3).map(...)).';
-      bgmText = 'DILARANG keras memutar musik dari properti mempelai.music_url! Gunakan audio instrumen romantis fallback bawaan secara looping. Abaikan properti mempelai.music_url.';
+      bgmText = '- mempelai?.music_url (URL berkas latar musik .mp3 hasil pilihan atau unggahan manual kustomer. Wajib gunakan variabel ini untuk memutar musik latar kustomer! Sediakan URL musik instrumen romantis premium sebagai fallback pertahanan jika variabel ini null.)';
       giftText = 'DILARANG keras menampilkan/menghubungkan modul Rekening Amplop/E-Gift maupun properti gifts! Paket ini tidak menyediakan amplop digital.';
       eGiftSection = 'DILARANG keras membuat atau menampilkan bagian E-Gift/Kado digital!';
     } else if (activePromptTier === 'platinum') {
@@ -267,7 +434,7 @@ export default function TemplatesManager() {
       eGiftSection = '- **E-Gift & Kado Amplop Digital**: Kotak rekening digital kustomer lengkap dengan tombol instan untuk menyalin nomor rekening ke clipboard secara mulus.';
       watermarkText = `* **LOGIKA TANPA GAMBAR (STRICTLY NO-IMAGE DESIGN)**:
     - JANGAN merender tag <img> untuk profil mempelai pria, wanita, cover depan, maupun galeri!
-    - Untuk foto profil pria dan wanita yang kosong: Gantilah dengan inisial huruf pertama nama mempelai (misal: "A" untuk Aditya, "A" untuk Aulia) di dalam kontainer lingkaran/kotak bergradasi warna HSL lembut yang serasi dengan tema desain.
+    - DILARANG KERAS merender placeholder avatar, lingkaran inisial huruf, kotak inisial, maupun ornamen berbentuk bingkai foto di bagian detail mempelai pria dan wanita! Di seksi profil mempelai, HANYA tampilkan nama mempelai (groom_name, bride_name) dan nama orang tua kustomer secara murni berbasis keindahan teks tipografi (Pure Typography) tanpa ada lingkaran/kotak tempat avatar sama sekali!
     - Untuk seksi cover pembuka depan & hero banner: Gunakan ornamen visual murni berbasis CSS/SVG (garis pembatas ultra-tipis, ornamen bunga SVG halus, garis lengkung artistik, atau pola gradien mewah) untuk menyelimuti nama mempelai agar terlihat megah dan estetik tanpa gambar latar belakang.
     - Seksi Galeri Prewedding wajib disembunyikan sepenuhnya!
     - Kategori config.json wajib diisi: "Typography"`;
@@ -380,7 +547,13 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
   * Istilah deskripsi tata letak seperti "woodland bento", "bento asimetris", "bingkai organik", "desain bersih tanpa caption", atau sejenisnya.
 - Kalimat-kalimat di atas adalah instruksi logika koding bagi Anda (AI), bukan teks pengisi (placeholder) yang harus dibaca oleh tamu undangan. Layar undangan hanya boleh menampilkan judul bagian standar yang bersih (misal: "Galeri Foto", "Momen Bahagia", dll.) dan data asli dari database. JANGAN PERNAH menyelipkan teks deskripsi visual ke dalam tag JSX.
 
-7. ATURAN PENULISAN KODE TEMPLATE.JSX:
+7. LOGIKA SMART AUTO-HIDE SEKSI OPSIONAL (SMART SECTION TOGGLES):
+- Selalu lakukan pengecekan keberadaan data kustomer secara dinamis sebelum merender seluruh kontainer seksi opsional demi menjaga visual premium:
+  * **Kisah Cinta (Love Story)**: Wajib dibungkus dengan pemeriksaan kondisional: \`mempelai?.love_story && ( <section>...</section> )\`. Jika kustomer tidak mengisi kisah cinta (bernilai null, undefined, atau string kosong), seksi Kisah Cinta **wajib disembunyikan sepenuhnya** (tidak dirender sama sekali di DOM), bukan memunculkan seksi kosong dengan judul hampa.
+  * **Galeri Prewedding**: Lakukan pengecekan terhadap array hasil saringan foto prewedding: \`preweddingImages && preweddingImages.length > 0 && ( <section>...</section> )\`. Jika kustomer tidak mengunggah foto prewedding sama sekali (array bernilai kosong / 0 data), seksi Galeri Foto **wajib disembunyikan sepenuhnya** dari layar agar tidak merusak tata letak typographic yang bersih.
+  * **Kado Amplop / E-Gift**: Jika kustomer tidak mengonfigurasi rekening atau hadiah sama sekali, atau array \`gifts\` bernilai kosong (\`!gifts || gifts.length === 0\`), seksi kado amplop digital **wajib disembunyikan sepenuhnya** dari hadapan tamu.
+
+8. ATURAN PENULISAN KODE TEMPLATE.JSX:
 - Tulis seluruh kode komponen dalam SATU file tunggal ("template.jsx").
 - Gunakan export default tunggal (misal: export default function InvitationComponent(...) or export default class ...).
 - Import icon Lucide hanya dari 'lucide-react' (contoh: import { Heart, Calendar, MapPin, Gift, Clock, Copy, Check, Volume2, VolumeX, MailOpen } from 'lucide-react';).
@@ -391,12 +564,172 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
     setTimeout(() => setCopiedPrompt(false), 2500);
   };
 
+  // Load BGM list from database
+  const loadBgmList = async () => {
+    try {
+      setBgmLoading(true);
+      const list = await musicLibraryService.getAll();
+      setBgmList(list || []);
+    } catch (err) {
+      console.error('Error fetching database BGMs:', err);
+    } finally {
+      setBgmLoading(false);
+    }
+  };
+
+  const handleUploadBgm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBgmFile) {
+      alert('Silakan pilih berkas MP3 terlebih dahulu.');
+      return;
+    }
+    if (!newBgmTitle.trim()) {
+      alert('Silakan masukkan judul lagu.');
+      return;
+    }
+
+    setIsBgmUploading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error('Sesi tidak ditemukan. Silakan login kembali.');
+
+      const userId = session.user.id;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+
+      if (!profile || profile.role !== 'super_admin') {
+        throw new Error('Anda tidak memiliki izin untuk mengunggah BGM bersama (khusus admin).');
+      }
+
+      await musicLibraryService.uploadAndSaveTrack(
+        newBgmFile,
+        newBgmTitle.trim(),
+        newBgmArtist.trim() || 'Unknown',
+        false, // Public shared track
+        userId,
+        profile.role
+      );
+
+      alert('BGM bersama berhasil ditambahkan ke perpustakaan!');
+      setNewBgmFile(null);
+      setNewBgmTitle('');
+      setNewBgmArtist('');
+      loadBgmList();
+    } catch (err: any) {
+      console.error('Error uploading BGM:', err);
+      alert(err.message || 'Gagal menambahkan lagu.');
+    } finally {
+      setIsBgmUploading(false);
+    }
+  };
+
+  const handleDeleteBgm = async (id: string, fileUrl: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus lagu BGM ini dari perpustakaan?')) return;
+
+    try {
+      if (fileUrl.includes('/music/')) {
+        const filePath = fileUrl.split('/music/').pop();
+        if (filePath) {
+          await supabase.storage.from('music').remove([decodeURIComponent(filePath)]);
+        }
+      }
+
+      await musicLibraryService.delete(id);
+      alert('BGM berhasil dihapus dari perpustakaan.');
+      loadBgmList();
+    } catch (err) {
+      console.error('Error deleting BGM:', err);
+      alert('Gagal menghapus BGM.');
+    }
+  };
+
+  const togglePlayBgm = (id: string, url: string) => {
+    if (playingBgmId === id) {
+      audioRef.current?.pause();
+      setPlayingBgmId(null);
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      audioRef.current = new Audio(url);
+      audioRef.current.play();
+      setPlayingBgmId(id);
+      audioRef.current.onended = () => {
+        setPlayingBgmId(null);
+      };
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
+
+  const fetchCollaborationSetting = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'collaboration_enabled')
+        .single();
+      if (!error && data) {
+        const valObj = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+        setCollaborationEnabled(!!valObj?.enabled);
+      }
+    } catch (err) {
+      console.error('Error fetching collaboration setting:', err);
+    }
+  };
+
+  const handleToggleCollaboration = async () => {
+    const nextVal = !collaborationEnabled;
+    try {
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert({
+          key: 'collaboration_enabled',
+          value: { enabled: nextVal },
+          updated_at: new Date().toISOString()
+        });
+      if (error) throw error;
+      setCollaborationEnabled(nextVal);
+      alert(`Akses kontribusi kustomer berhasil ${nextVal ? 'DIBUKA' : 'DITUTUP'}!`);
+    } catch (err) {
+      console.error('Error toggling collaboration setting:', err);
+      alert('Gagal memperbarui status kolaborasi. Pastikan Anda telah menjalankan migrasi SQL 012_system_settings.sql.');
+    }
+  };
+
   // Load current database templates
   const loadTemplates = async () => {
     try {
       setLoading(true);
-      const list = await templateService.getAll();
-      setExistingTemplates(list);
+      let list = await templateService.getAll();
+
+      // Auto-seed default templates if database is empty and logged-in user is admin/super_admin
+      if ((!list || list.length === 0) && profile?.role === 'super_admin') {
+        console.log('Templates table is empty. Seeding defaults from admin dashboard...');
+        const seeded: Template[] = [];
+        for (const item of FALLBACK_TEMPLATES) {
+          try {
+            const res = await templateService.create(item);
+            seeded.push(res);
+          } catch (createErr) {
+            console.error('Failed to seed template:', item.slug, createErr);
+          }
+        }
+        if (seeded.length > 0) {
+          list = seeded;
+        }
+      }
+
+      setExistingTemplates(list || []);
     } catch (err) {
       console.error('Error fetching database templates:', err);
     } finally {
@@ -406,7 +739,11 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
 
   useEffect(() => {
     loadTemplates();
+    loadBgmList();
+    fetchCollaborationSetting();
   }, []);
+
+
 
   // Listen to drag & drop events on #root / window level to support seamless upload dragging
   useEffect(() => {
@@ -746,20 +1083,30 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
       let finalSlug = draftTemplate.slug || 'template-slug';
       finalSlug = finalSlug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
-      const payload = {
+      // Define default values
+      const payload: any = {
         name: draftTemplate.name,
         slug: finalSlug,
         category: draftTemplate.category || 'Classic',
         price: draftTemplate.price || 150000,
         thumbnail_url: draftTemplate.thumbnail_url || 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=400',
         preview_url: draftTemplate.preview_url || `/preview/${finalSlug}`,
-        status: draftTemplate.status || 'active',
+        status: profile?.role === 'customer' ? 'draft' : (draftTemplate.status || 'active'),
         jsx_code: draftTemplate.jsx_code || null
       };
 
+      // Add dynamic tag of creator
+      if (profile?.role === 'customer' && user?.id) {
+        payload.created_by = user.id;
+      }
+
       await templateService.create(payload);
 
-      setSuccessMsg(`Template "${payload.name}" berhasil diunggah dan disimpan ke database.`);
+      if (profile?.role === 'customer') {
+        setSuccessMsg(`Selamat! Template "${payload.name}" berhasil diajukan untuk ditinjau oleh Admin.`);
+      } else {
+        setSuccessMsg(`Template "${payload.name}" berhasil diunggah dan disimpan ke database.`);
+      }
       setDraftTemplate(null);
       setDraftFiles([]);
       setImportType(null);
@@ -848,10 +1195,10 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
 
   // Filter existing templates
   const filteredTemplates = existingTemplates.filter(t => {
-    const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.slug.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || t.category === selectedCategory;
-    
+    const matchesSearch = (t?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (t?.slug || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'All' || t?.category === selectedCategory;
+
     // Classify template tier by price
     const price = Number(t.price || 0);
     let templatePackage = 'silver';
@@ -860,11 +1207,426 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
     } else if (price > 99000) {
       templatePackage = 'platinum';
     }
-    
+
     const matchesPackage = selectedPackage === 'All' || templatePackage === selectedPackage;
-    
+
     return matchesSearch && matchesCategory && matchesPackage;
   });
+
+  if (profile?.role === 'customer') {
+    if (!collaborationEnabled) {
+      return (
+        <div className="max-w-md mx-auto py-16 text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-20 h-20 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center mx-auto shadow-md border border-amber-200">
+            <Lock className="w-10 h-10 animate-bounce" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-gray-900">Akses Kolaborasi Ditutup</h2>
+            <p className="text-gray-500 text-sm leading-relaxed">
+              Halo Kreator! Fitur kontribusi dan kolaborasi desain template saat ini sedang dinonaktifkan oleh Administrator platform NikahYuk!.
+            </p>
+          </div>
+          <div className="bg-white border border-gray-150 rounded-2xl p-4 text-xs text-gray-400">
+            Hubungi dukungan admin jika Anda memiliki desain template undangan MP3 premium yang ingin diunggah secara publik.
+          </div>
+        </div>
+      );
+    }
+
+    const myContributions = existingTemplates.filter(t => t.created_by === user?.id);
+
+    return (
+      <div className="max-w-7xl mx-auto space-y-8 pb-12 animate-in fade-in duration-300">
+        {/* Page Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Panel Kontributor Template</h1>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-250 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 fill-current" /> Kreator Aktif
+              </span>
+            </div>
+            <p className="text-gray-500 text-sm mt-0.5">
+              Bantu platform berkembang secara masif! Buat template undangan digital romantis premium menggunakan ChatGPT, lakukan kompilasi, uji sandbox, lalu ajukan review ke Admin.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition flex items-center gap-2 shadow-sm w-fit"
+            >
+              <Plus className="w-4 h-4" /> Unggah Berkas Template (.zip / .json / .jsx)
+            </button>
+            <button
+              type="button"
+              onClick={loadTemplates}
+              className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 text-sm font-semibold px-4 py-2 rounded-xl transition flex items-center gap-2 shadow-sm w-fit"
+            >
+              <RefreshCw className="w-4 h-4" /> Segarkan Status
+            </button>
+          </div>
+        </div>
+
+        {/* Database alerts or notifications */}
+        {successMsg && (
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl p-4 flex items-center gap-3 animate-in fade-in duration-300">
+            <CheckCircle2 className="w-6 h-6 text-emerald-600 flex-shrink-0" />
+            <p className="text-sm font-medium">{successMsg}</p>
+          </div>
+        )}
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Left Column: Import / Upload & Instructions */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Uploader Card */}
+            <div className="bg-white rounded-3xl border border-gray-150 p-6 shadow-sm">
+              <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                <Upload className="w-5 h-5 text-primary-500" />
+                Unggah Hasil Desain Anda
+              </h2>
+              <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+                Mendukung arsip paket `.zip` berisi config, metadata `.json`, atau langsung berkas kode komponen `.jsx` dengan scanning kompatibilitas otomatis.
+              </p>
+
+              {/* Drop Zone Area */}
+              <div
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center min-h-[180px] ${dragActive
+                  ? 'border-primary-500 bg-primary-50/50 scale-[0.98]'
+                  : 'border-gray-200 hover:border-gray-300 bg-gray-50 hover:bg-gray-100'
+                  }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".zip,.json,.jsx"
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
+                {isParsing ? (
+                  <>
+                    <Loader2 className="w-10 h-10 text-primary-500 animate-spin mb-3" />
+                    <p className="text-sm font-semibold text-gray-800">Sedang mengekstrak & menganalisis...</p>
+                  </>
+                ) : (
+                  <>
+                    <FolderOpen className="w-10 h-10 text-gray-300 mb-3" />
+                    <p className="text-sm font-bold text-gray-700">Tarik berkas Anda ke sini, atau klik untuk memilih</p>
+                    <p className="text-xs text-gray-400 mt-2 font-mono">ZIP, JSON, atau Kode Komponen (.jsx)</p>
+                  </>
+                )}
+              </div>
+
+              {parsingError && (
+                <div className="mt-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl p-4 space-y-2">
+                  <div className="flex gap-2 text-xs font-bold text-rose-800">
+                    <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                    <span>⚠️ TEMPLATE DITOLAK: Kode Tidak Memenuhi Kualifikasi Standar!</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-rose-700">
+                    Sistem menolak file yang diunggah karena format kode atau variabel internal tidak sesuai dengan konfigurasi database platform kami.
+                  </p>
+                  <div className="bg-white p-2.5 rounded-lg border border-rose-150 text-[10.5px] font-mono text-stone-700 leading-normal">
+                    Detail: {parsingError}
+                  </div>
+                  <p className="text-[11px] text-rose-700 leading-relaxed font-semibold">
+                    💡 Solusi: Mohon salin kembali Prompt Pembuatan Template secara utuh dari panel kanan, buka ChatGPT, paste prompt tersebut, dan minta ChatGPT untuk mereparasi/memperbaiki kode Anda agar 100% kompatibel.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Step-by-Step Instructions */}
+            <div className="bg-gradient-to-br from-primary-50 to-indigo-50 border border-primary-100 rounded-3xl p-6 space-y-4">
+              <h3 className="text-sm font-bold text-primary-900 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-primary-500 fill-current" />
+                Petunjuk Pembuatan Mandiri via ChatGPT
+              </h3>
+
+              <div className="space-y-3 text-xs text-gray-700 leading-relaxed">
+                <div className="flex gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary-600 text-white font-bold flex items-center justify-center text-[10px] flex-shrink-0">1</span>
+                  <p>
+                    Pilih kategori paket template di sidebar kanan (Silver, Gold, Platinum, atau Tipografi) lalu klik Salin Prompt Pembuatan.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary-600 text-white font-bold flex items-center justify-center text-[10px] flex-shrink-0">2</span>
+                  <p>
+                    Buka <a href="https://chatgpt.com" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline font-bold inline-flex items-center gap-0.5">ChatGPT <ExternalLink className="w-3.5 h-3.5" /></a>, paste seluruh prompt tersebut, lalu minta ChatGPT membuat komponen react premium.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary-600 text-white font-bold flex items-center justify-center text-[10px] flex-shrink-0">3</span>
+                  <p>
+                    Unduh file `template.jsx` dan `config.json` hasil ChatGPT. Kompres kedua file tersebut beserta gambar `thumbnail.jpg` menjadi satu berkas .zip, atau unggah langsung file `.jsx` tersebut di sini.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary-600 text-white font-bold flex items-center justify-center text-[10px] flex-shrink-0">4</span>
+                  <p>
+                    Kamu bisa menambahkan jenis kategori, warna, animasi, gambar, bentuk, atau tulisan apapun secara spesifik pada template yang ingin kamu buat. Cukup ketik di bagian paling atas atau paling bawah bagaimana keinginanmu. Sampaikan dengan jelas dan detail
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary-600 text-white font-bold flex items-center justify-center text-[10px] flex-shrink-0">5</span>
+                  <p>
+                    Klik tombol Ajukan untuk Review agar Admin dapat menyetujui kontribusi template Anda!
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Sandbox Draft & Contributions List */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Sandbox Draft Staging */}
+            {draftTemplate ? (
+              <div className="bg-white rounded-3xl border border-primary-100 shadow-md p-6 relative overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-primary-450 via-primary-550 to-pink-500" />
+
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center text-xs font-bold">ST</span>
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-sm">Sandbox Simulator (Pratinjau Kode)</h3>
+                      <p className="text-[10px] text-gray-400">Kode Anda berhasil dikompilasi! Uji coba tata letak visual sebelum diajukan.</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { setDraftTemplate(null); setDraftFiles([]); setImportType(null); }}
+                    className="text-gray-400 hover:text-gray-650"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6 bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Nama Desain</label>
+                      <input
+                        type="text"
+                        value={draftTemplate.name || ''}
+                        onChange={(e) => handleDraftFieldChange('name', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Kategori</label>
+                      <select
+                        value={draftTemplate.category || 'Classic'}
+                        onChange={(e) => handleDraftFieldChange('category', e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary-500"
+                      >
+                        {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Paket Tier & Harga</label>
+                      <select
+                        value={draftTemplate.price || 0}
+                        onChange={(e) => handleDraftFieldChange('price', Number(e.target.value))}
+                        className="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary-500"
+                      >
+                        <option value={0}>🤍 Paket Silver (Gratis / Rp 0)</option>
+                        <option value={99000}>👑 Paket Gold (Rp 99,000)</option>
+                        <option value={149000}>✨ Paket Platinum (Rp 149,000)</option>
+                      </select>
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewTemplate(draftTemplate)}
+                        className="flex-1 bg-white hover:bg-gray-100 text-gray-800 border border-gray-200 text-xs font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-primary-500" /> Pratinjau Simulator
+                      </button>
+                      <button
+                        type="button"
+                        disabled={saving}
+                        onClick={handleSaveDraftToDatabase}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-350 text-white text-xs font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs"
+                      >
+                        {saving ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5" />
+                        )}
+                        Ajukan ke Admin
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Berkas Terkompilasi</label>
+                    <div className="bg-white rounded-xl border border-gray-200 p-3 h-[180px] overflow-y-auto space-y-1.5">
+                      {draftFiles.map((f, i) => (
+                        <div key={i} className="flex justify-between text-[11px] font-mono p-1 rounded hover:bg-gray-50">
+                          <span className="text-gray-650 truncate max-w-[155px]">📄 {f.name}</span>
+                          <span className="text-gray-400">{(f.size / 1024).toFixed(1)} KB</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Prompt Creator Segment */}
+            <div className="bg-white rounded-3xl border border-gray-150 p-6 shadow-sm">
+              <div className="bg-gradient-to-r from-primary-50 to-indigo-50 rounded-2xl border border-primary-100 p-5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 transform translate-x-3 -translate-y-1 text-primary-100">
+                  <Code className="w-16 h-16 opacity-10" />
+                </div>
+
+                <h4 className="text-sm font-bold text-primary-900 mb-1 flex items-center gap-1.5">
+                  <Code className="w-4 h-4 text-primary-500" />
+                  Penyalin Prompt AI Pembuat Template
+                </h4>
+                <p className="text-xs text-gray-500 leading-relaxed mb-4">
+                  Gunakan tab di bawah untuk memilih tingkatan paket desain kustom, salin perintah prompt yang disediakan, dan tempel di ChatGPT untuk merancang template 100% kompatibel.
+                </p>
+
+                {/* Package selector tabs for Prompt Creator */}
+                <div className="grid grid-cols-4 gap-1 bg-slate-100/80 p-1 rounded-xl mb-4 max-w-md">
+                  {(['silver', 'gold', 'platinum', 'typography'] as const).map((tier) => (
+                    <button
+                      key={tier}
+                      type="button"
+                      onClick={() => setActivePromptTier(tier)}
+                      className={`py-1.5 text-[10px] font-bold rounded-lg transition-all capitalize ${activePromptTier === tier
+                        ? 'bg-white text-primary-600 shadow-xs font-extrabold'
+                        : 'text-gray-500 hover:text-gray-800'
+                        }`}
+                    >
+                      {tier === 'silver' ? '🤍 Silver' : tier === 'gold' ? '👑 Gold' : tier === 'platinum' ? '✨ Platinum' : '📖 Tnp Foto'}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCopyPrompt}
+                  className={`w-full text-xs font-bold py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-1.5 ${copiedPrompt
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-100 shadow-md animate-bounce'
+                    : 'bg-primary-600 hover:bg-primary-700 text-white shadow-primary-100 shadow-md'
+                    }`}
+                >
+                  {copiedPrompt ? (
+                    <>
+                      <Check className="w-4 h-4" /> Prompt Berhasil Disalin!
+                    </>
+                  ) : (
+                    <>
+                      <X className="w-4 h-4 rotate-45" /> Salin Prompt Pembuatan Template ({activePromptTier.toUpperCase()})
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* List Contribution templates */}
+            <div className="bg-white rounded-3xl border border-gray-150 p-6 shadow-sm">
+              <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-1.5">
+                <Palette className="w-4 h-4 text-primary-500" />
+                Daftar Kontribusi Desain Anda ({myContributions.length})
+              </h3>
+
+              {loading ? (
+                <div className="py-12 text-center space-y-2">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto" />
+                  <p className="text-xs text-gray-400">Memuat data kontribusi...</p>
+                </div>
+              ) : myContributions.length === 0 ? (
+                <div className="py-12 text-center border-2 border-dashed border-gray-150 rounded-2xl bg-gray-50/50">
+                  <Palette className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm font-semibold text-gray-700">Belum ada kontribusi template</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Mulai dengan mengunggah template pertama Anda menggunakan petunjuk di atas!</p>
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-6">
+                  {myContributions.map((tpl) => (
+                    <div
+                      key={tpl.id}
+                      className="group bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm flex flex-col justify-between"
+                    >
+                      <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
+                        <img
+                          src={getTemplateThumbnail(tpl.slug) || tpl.thumbnail_url}
+                          alt={tpl.name}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-3 left-3 flex gap-1 items-center">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/95 shadow-sm text-gray-850">
+                            {tpl.category}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${tpl.status === 'active'
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                            : 'bg-amber-100 text-amber-800 border-amber-250'
+                            }`}>
+                            {tpl.status === 'active' ? 'Aktif (Disetujui)' : 'Draf (Review Admin)'}
+                          </span>
+                        </div>
+                        <div className="absolute bottom-3 right-3">
+                          <span className="px-2 py-0.5 rounded bg-black/60 backdrop-blur-xs text-[10px] font-mono font-bold text-white uppercase">
+                            Rp {Number(tpl.price).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="p-4 bg-gray-55/50 border-t border-gray-150 flex items-center justify-between">
+                        <span className="text-xs font-bold text-gray-900 truncate max-w-[150px]">{tpl.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            localStorage.setItem(`draft_template_${tpl.slug || 'classic'}`, JSON.stringify(tpl));
+                            window.open(tpl.preview_url?.startsWith('http') ? tpl.preview_url : `/preview/${tpl.slug || 'classic'}`, '_blank');
+                          }}
+                          className="text-primary-600 hover:text-primary-700 text-[10px] font-bold flex items-center gap-0.5"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Pratinjau
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Preview Sandbox Modal Frame */}
+        {previewTemplate ? (
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+            <div className="relative bg-white rounded-3xl overflow-hidden shadow-2xl border border-gray-150 w-full h-[90vh] flex flex-col transition-all duration-300 z-10 cursor-default max-w-sm">
+              <div className="p-4 bg-gray-900 text-white flex items-center justify-between">
+                <span className="text-xs font-bold">Simulator Smartphone</span>
+                <button
+                  onClick={() => setPreviewTemplate(null)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex-1 bg-gray-100 flex items-center justify-center overflow-hidden">
+                <iframe
+                  title="Mobile Viewport"
+                  src={`/preview/${previewTemplate.slug || 'classic'}`}
+                  className="w-full h-full border-0 bg-white"
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-12">
@@ -882,6 +1644,19 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {profile?.role === 'super_admin' && (
+            <button
+              type="button"
+              onClick={handleToggleCollaboration}
+              className={`text-xs sm:text-sm font-bold px-4 py-2 rounded-xl transition flex items-center gap-2 shadow-xs border ${collaborationEnabled
+                ? 'bg-emerald-500 text-white border-emerald-600 hover:bg-emerald-600'
+                : 'bg-amber-100 text-amber-800 border-amber-250 hover:bg-amber-200'
+                }`}
+            >
+              <Sparkles className="w-4 h-4 fill-current" />
+              Kontribusi Kustomer: {collaborationEnabled ? 'AKTIF (ON)' : 'MATI (OFF)'}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -1004,11 +1779,10 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
                     key={tier}
                     type="button"
                     onClick={() => setActivePromptTier(tier)}
-                    className={`py-1.5 text-[10px] font-bold rounded-lg transition-all capitalize ${
-                      activePromptTier === tier
-                        ? 'bg-white text-primary-600 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-800'
-                    }`}
+                    className={`py-1.5 text-[10px] font-bold rounded-lg transition-all capitalize ${activePromptTier === tier
+                      ? 'bg-white text-primary-600 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-800'
+                      }`}
                   >
                     {tier === 'silver' ? '🤍 Silver' : tier === 'gold' ? '👑 Gold' : tier === 'platinum' ? '✨ Platinum' : '📖 Tnp Foto'}
                   </button>
@@ -1040,7 +1814,182 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
               <p>💼 Paket `.zip` akan secara dinamis mengekstrak file `thumbnail.jpg` atau `thumbnail.png` yang disertakan di dalamnya.</p>
             </div>
           </div>
+
+          {/* Perpustakaan BGM (Musik Latar) */}
+          <div className="bg-white rounded-3xl border border-gray-150 p-6 shadow-sm space-y-6">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                <Music className="w-5 h-5 text-primary-500" />
+                Kelola BGM Bersama
+              </h2>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Kelola koleksi lagu latar belakang (BGM) format MP3 yang dapat dipilih langsung oleh semua kustomer di dalam undangan mereka.
+              </p>
+            </div>
+
+            {/* Form Upload BGM */}
+            <form onSubmit={handleUploadBgm} className="space-y-4 bg-gray-50 p-4 rounded-2xl border border-gray-200">
+              <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Unggah BGM Baru
+              </h3>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Judul Lagu *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Janji Suci"
+                    value={newBgmTitle}
+                    onChange={(e) => setNewBgmTitle(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Artis / Penyanyi</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Yovie & Nuno (opsional)"
+                    value={newBgmArtist}
+                    onChange={(e) => setNewBgmArtist(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Berkas Audio (MP3) *</label>
+                  <div className="flex items-center gap-3">
+                    <label className="cursor-pointer bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs select-none">
+                      <Upload className="w-3.5 h-3.5" />
+                      {newBgmFile ? 'Ubah File' : 'Pilih MP3'}
+                      <input
+                        type="file"
+                        required
+                        accept="audio/mp3, audio/mpeg"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (!file.type.startsWith('audio/') && !file.name.endsWith('.mp3')) {
+                              alert('File harus berupa MP3!');
+                              return;
+                            }
+                            if (file.size > 10 * 1024 * 1024) {
+                              alert('Maksimal ukuran audio adalah 10MB!');
+                              return;
+                            }
+                            setNewBgmFile(file);
+                            if (!newBgmTitle) {
+                              // Auto-fill title from filename
+                              const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                              setNewBgmTitle(nameWithoutExt);
+                            }
+                          }
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                    <span className="text-[11px] text-gray-500 truncate max-w-[150px]">
+                      {newBgmFile ? newBgmFile.name : 'Belum memilih file'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isBgmUploading}
+                className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-primary-350 text-white text-xs font-bold py-2 rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                {isBgmUploading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Mengunggah...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-3.5 h-3.5" /> Tambah ke Perpustakaan
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* List BGM */}
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Koleksi BGM ({bgmList.length})
+                </h3>
+                <button
+                  type="button"
+                  onClick={loadBgmList}
+                  className="text-gray-400 hover:text-gray-650"
+                  title="Segarkan List BGM"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {bgmLoading ? (
+                <div className="py-8 text-center space-y-2">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary-500 mx-auto" />
+                  <p className="text-[10px] text-gray-400">Memuat pustaka musik...</p>
+                </div>
+              ) : bgmList.length === 0 ? (
+                <div className="py-8 text-center border-2 border-dashed border-gray-150 rounded-2xl bg-gray-50/50">
+                  <Music className="w-6 h-6 text-gray-300 mx-auto mb-1" />
+                  <p className="text-xs text-gray-500">Belum ada lagu BGM</p>
+                  <p className="text-[10px] text-gray-400">Gunakan form di atas untuk mengunggah BGM pertama.</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                  {bgmList.map((bgm) => (
+                    <div
+                      key={bgm.id}
+                      className="flex items-center justify-between p-2.5 bg-white border border-gray-150 rounded-xl hover:shadow-xs transition duration-200"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <button
+                          type="button"
+                          onClick={() => togglePlayBgm(bgm.id, bgm.url)}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition ${playingBgmId === bgm.id
+                            ? 'bg-emerald-500 text-white animate-pulse'
+                            : 'bg-primary-50 text-primary-600 hover:bg-primary-100'
+                            }`}
+                        >
+                          {playingBgmId === bgm.id ? (
+                            <Pause className="w-3.5 h-3.5 fill-current" />
+                          ) : (
+                            <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                          )}
+                        </button>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-gray-900 truncate leading-tight flex items-center gap-1.5">
+                            {bgm.title}
+                            {bgm.is_private && (
+                              <span className="text-[9px] bg-amber-100 text-amber-800 px-1 py-0.2 rounded-sm font-bold uppercase">
+                                Privat
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-[10px] text-gray-500 truncate">{bgm.artist}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteBgm(bgm.id, bgm.url)}
+                        className="text-gray-400 hover:text-red-500 p-1 rounded-lg hover:bg-gray-50 flex-shrink-0 transition"
+                        title="Hapus Lagu"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
+
 
         {/* Right Columns: Preview / Sandbox Draft Area & Database Sync */}
         <div className="lg:col-span-2 space-y-8">
@@ -1226,7 +2175,7 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
 
                     {/* The Sim card item */}
                     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow transition-shadow group">
-                      <div 
+                      <div
                         onClick={() => {
                           if (draftTemplate) {
                             localStorage.setItem(`draft_template_${draftTemplate.slug || 'classic'}`, JSON.stringify(draftTemplate));
@@ -1237,7 +2186,7 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
                         title="Klik untuk Pratinjau (Preview)"
                       >
                         <img
-                          src={draftTemplate.thumbnail_url}
+                          src={getTemplateThumbnail(draftTemplate.slug || '') || draftTemplate.thumbnail_url}
                           alt="Template Preview Sketch"
                           referrerPolicy="no-referrer"
                           className="w-full h-full object-cover group-hover/img:scale-105 transition duration-500"
@@ -1360,15 +2309,16 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
                     className="group bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition duration-250 flex flex-col justify-between"
                   >
                     {/* Visual Media Cover */}
-                    <div 
+                    <div
                       onClick={() => {
+                        localStorage.setItem(`draft_template_${tpl.slug || 'classic'}`, JSON.stringify(tpl));
                         window.open(tpl.preview_url?.startsWith('http') ? tpl.preview_url : `/preview/${tpl.slug || 'classic'}`, '_blank');
                       }}
                       className="relative aspect-[4/3] bg-gray-100 overflow-hidden cursor-pointer group/img"
                       title="Klik untuk Pratinjau (Preview)"
                     >
                       <img
-                        src={tpl.thumbnail_url}
+                        src={getTemplateThumbnail(tpl.slug) || tpl.thumbnail_url}
                         alt={tpl.name}
                         referrerPolicy="no-referrer"
                         className="w-full h-full object-cover group-hover/img:scale-105 transition duration-500"
@@ -1429,8 +2379,11 @@ ${watermarkText || '- Sediakan credit watermark berupa tautan "NikahYuk!" secara
 
                         {/* Interactive live preview frame preview button */}
                         <button
-                          onClick={() => { window.open(tpl.preview_url?.startsWith('http') ? tpl.preview_url : `/preview/${tpl.slug || 'classic'}`, '_blank'); }}
-                          className="text-xs font-bold bg-gray-50 hover:bg-primary-50 text-gray-750 hover:text-primary-600 transition px-3 py-1.5 rounded-lg border border-gray-150 hover:border-primary-100 flex items-center gap-1"
+                          onClick={() => {
+                            localStorage.setItem(`draft_template_${tpl.slug || 'classic'}`, JSON.stringify(tpl));
+                            window.open(tpl.preview_url?.startsWith('http') ? tpl.preview_url : `/preview/${tpl.slug || 'classic'}`, '_blank');
+                          }}
+                          className="text-xs font-bold bg-gray-55 hover:bg-primary-50 text-gray-750 hover:text-primary-600 transition px-3 py-1.5 rounded-lg border border-gray-150 hover:border-primary-100 flex items-center gap-1"
                         >
                           <Eye className="w-3.5 h-3.5" /> Preview
                         </button>

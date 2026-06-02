@@ -6,6 +6,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
 import { Template } from '../types/database.types';
+import { getTemplateThumbnail } from '../utils/templateThumbnails';
 
 const FALLBACK_TEMPLATES: Template[] = [
   // 1. Classic Category Tiers
@@ -15,7 +16,7 @@ const FALLBACK_TEMPLATES: Template[] = [
     slug: 'classic-silver',
     category: 'Classic',
     price: 0, // Silver
-    thumbnail_url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=600',
+    thumbnail_url: getTemplateThumbnail('classic-silver'),
     preview_url: '/preview/classic',
     status: 'active',
     created_at: new Date().toISOString(),
@@ -27,7 +28,7 @@ const FALLBACK_TEMPLATES: Template[] = [
     slug: 'classic-gold',
     category: 'Classic',
     price: 99000, // Gold
-    thumbnail_url: 'https://images.unsplash.com/photo-1507504038482-7621c37c2b62?auto=format&fit=crop&q=80&w=600',
+    thumbnail_url: getTemplateThumbnail('classic-gold'),
     preview_url: '/preview/classic',
     status: 'active',
     created_at: new Date().toISOString(),
@@ -39,7 +40,7 @@ const FALLBACK_TEMPLATES: Template[] = [
     slug: 'classic-platinum',
     category: 'Classic',
     price: 149000, // Platinum
-    thumbnail_url: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=600',
+    thumbnail_url: getTemplateThumbnail('classic-platinum'),
     preview_url: '/preview/classic',
     status: 'active',
     created_at: new Date().toISOString(),
@@ -53,7 +54,7 @@ const FALLBACK_TEMPLATES: Template[] = [
     slug: 'rustic-silver',
     category: 'Rustic',
     price: 0, // Silver
-    thumbnail_url: 'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&q=80&w=600',
+    thumbnail_url: getTemplateThumbnail('rustic-silver'),
     preview_url: '/preview/rustic',
     status: 'active',
     created_at: new Date().toISOString(),
@@ -65,7 +66,7 @@ const FALLBACK_TEMPLATES: Template[] = [
     slug: 'rustic',
     category: 'Rustic',
     price: 99000, // Gold
-    thumbnail_url: 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&q=80&w=600',
+    thumbnail_url: getTemplateThumbnail('rustic'),
     preview_url: '/preview/rustic',
     status: 'active',
     created_at: new Date().toISOString(),
@@ -77,7 +78,7 @@ const FALLBACK_TEMPLATES: Template[] = [
     slug: 'rustic-platinum',
     category: 'Rustic',
     price: 149000, // Platinum
-    thumbnail_url: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&q=80&w=600',
+    thumbnail_url: getTemplateThumbnail('rustic-platinum'),
     preview_url: '/preview/rustic',
     status: 'active',
     created_at: new Date().toISOString(),
@@ -91,7 +92,7 @@ const FALLBACK_TEMPLATES: Template[] = [
     slug: 'minimalist-silver',
     category: 'Minimalist',
     price: 0, // Silver
-    thumbnail_url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=600',
+    thumbnail_url: getTemplateThumbnail('minimalist-silver'),
     preview_url: '/preview/minimalist',
     status: 'active',
     created_at: new Date().toISOString(),
@@ -103,7 +104,7 @@ const FALLBACK_TEMPLATES: Template[] = [
     slug: 'minimalist-gold',
     category: 'Minimalist',
     price: 99000, // Gold
-    thumbnail_url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600',
+    thumbnail_url: getTemplateThumbnail('minimalist-gold'),
     preview_url: '/preview/minimalist',
     status: 'active',
     created_at: new Date().toISOString(),
@@ -115,7 +116,7 @@ const FALLBACK_TEMPLATES: Template[] = [
     slug: 'minimalist',
     category: 'Minimalist',
     price: 149000, // Platinum
-    thumbnail_url: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=600',
+    thumbnail_url: getTemplateThumbnail('minimalist'),
     preview_url: '/preview/minimalist',
     status: 'active',
     created_at: new Date().toISOString(),
@@ -129,7 +130,7 @@ const FALLBACK_TEMPLATES: Template[] = [
     slug: 'islamic-silver',
     category: 'Islamic',
     price: 0, // Silver
-    thumbnail_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600',
+    thumbnail_url: getTemplateThumbnail('islamic-silver'),
     preview_url: '/preview/islamic',
     status: 'active',
     created_at: new Date().toISOString(),
@@ -141,7 +142,7 @@ const FALLBACK_TEMPLATES: Template[] = [
     slug: 'islamic',
     category: 'Islamic',
     price: 99000, // Gold
-    thumbnail_url: 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&q=80&w=600',
+    thumbnail_url: getTemplateThumbnail('islamic'),
     preview_url: '/preview/islamic',
     status: 'active',
     created_at: new Date().toISOString(),
@@ -153,7 +154,7 @@ const FALLBACK_TEMPLATES: Template[] = [
     slug: 'islamic-platinum',
     category: 'Islamic',
     price: 149000, // Platinum
-    thumbnail_url: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80&w=600',
+    thumbnail_url: getTemplateThumbnail('islamic-platinum'),
     preview_url: '/preview/islamic',
     status: 'active',
     created_at: new Date().toISOString(),
@@ -167,7 +168,7 @@ const FALLBACK_TEMPLATES: Template[] = [
     slug: 'floral-silver',
     category: 'Floral',
     price: 0, // Silver
-    thumbnail_url: 'https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&q=80&w=600',
+    thumbnail_url: getTemplateThumbnail('floral-silver'),
     preview_url: '/preview/floral',
     status: 'active',
     created_at: new Date().toISOString(),
@@ -179,7 +180,7 @@ const FALLBACK_TEMPLATES: Template[] = [
     slug: 'floral-gold',
     category: 'Floral',
     price: 99000, // Gold
-    thumbnail_url: 'https://images.unsplash.com/photo-1533616688419-b7a585564566?auto=format&fit=crop&q=80&w=600',
+    thumbnail_url: getTemplateThumbnail('floral-gold'),
     preview_url: '/preview/floral',
     status: 'active',
     created_at: new Date().toISOString(),
@@ -191,7 +192,7 @@ const FALLBACK_TEMPLATES: Template[] = [
     slug: 'floral',
     category: 'Floral',
     price: 149000, // Platinum
-    thumbnail_url: 'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?auto=format&fit=crop&q=80&w=600',
+    thumbnail_url: getTemplateThumbnail('floral'),
     preview_url: '/preview/floral',
     status: 'active',
     created_at: new Date().toISOString(),
@@ -205,7 +206,7 @@ const FALLBACK_TEMPLATES: Template[] = [
     slug: 'elegance-typique',
     category: 'Typography',
     price: 0,
-    thumbnail_url: 'https://images.unsplash.com/photo-1473177104440-ffee2f376098?auto=format&fit=crop&q=80&w=600',
+    thumbnail_url: getTemplateThumbnail('elegance-typique'),
     preview_url: '/preview/elegance-typique',
     status: 'active',
     created_at: new Date().toISOString(),
@@ -435,7 +436,7 @@ export default function PublicTemplates() {
                   {/* Photo mockup Card */}
                   <div className="aspect-[16/9] bg-slate-50 relative overflow-hidden">
                     <img 
-                      src={item.thumbnail_url || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=400'} 
+                      src={getTemplateThumbnail(item.slug) || item.thumbnail_url || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=400'} 
                       alt={item.name} 
                       className="w-full h-full object-cover group-hover:scale-102 transition duration-300"
                     />

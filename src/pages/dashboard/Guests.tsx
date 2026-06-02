@@ -212,8 +212,13 @@ ${groom} & ${bride}`;
 
         // Determine package tier
         let tier: 'silver' | 'gold' | 'platinum' = 'silver';
-        if (price === 99000) tier = 'gold';
-        else if (price === 149000) tier = 'platinum';
+        if (profile?.role === 'super_admin') {
+          tier = 'platinum';
+        } else if (price === 99000) {
+          tier = 'gold';
+        } else if (price === 149000) {
+          tier = 'platinum';
+        }
         setInvitationTier(tier);
 
       } catch (err) {
@@ -224,7 +229,7 @@ ${groom} & ${bride}`;
     }
 
     loadGuestsAndTier();
-  }, [selectedInvitation]);
+  }, [selectedInvitation, profile]);
 
   const handleSelectInvitation = (id: string) => {
     const found = invitations.find(i => i.id === id);

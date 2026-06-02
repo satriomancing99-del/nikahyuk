@@ -54,11 +54,11 @@ export default function App() {
         >
           <Route index element={<DashboardOverview />} />
           
-          {/* Admin Only Routes */}
+          {/* Admin & Collab Routes */}
           <Route 
             path="templates" 
             element={
-              <ProtectedRoute allowedRoles={['super_admin']}>
+              <ProtectedRoute allowedRoles={['super_admin', 'customer']}>
                 <TemplatesManager />
               </ProtectedRoute>
             } 

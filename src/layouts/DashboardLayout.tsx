@@ -23,7 +23,7 @@ import {
 
 const MENU_ITEMS = [
   { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['super_admin', 'customer'] },
-  { name: 'Template', icon: Palette, path: '/dashboard/templates', roles: ['super_admin'] },
+  { name: 'Kolaborasi Desain', icon: Palette, path: '/dashboard/templates', roles: ['super_admin', 'customer'] },
   { name: 'Undangan', icon: Mail, path: '/dashboard/invitations', roles: ['super_admin', 'customer'] },
   { name: 'Tamu', icon: Users, path: '/dashboard/guests', roles: ['super_admin', 'customer'] },
   { name: 'RSVP', icon: MessageSquareHeart, path: '/dashboard/rsvp', roles: ['super_admin', 'customer'] },
@@ -75,13 +75,40 @@ export default function DashboardLayout() {
   }, [profile, location.pathname]); // Re-verify on navigation to update state in real time
 
 
-  // Filter menu items based on user role
+  const [collaborationEnabled, setCollaborationEnabled] = useState(false);
+
+  // Fetch collaboration setting from system_settings
+  useEffect(() => {
+    async function fetchCollaborationSetting() {
+      try {
+        const { data, error } = await supabase
+          .from('system_settings')
+          .select('value')
+          .eq('key', 'collaboration_enabled')
+          .single();
+        if (!error && data) {
+          const valObj = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+          setCollaborationEnabled(!!valObj?.enabled);
+        }
+      } catch (err) {
+        console.error('Error fetching collaboration setting:', err);
+        // Graceful fallback to false for safety
+        setCollaborationEnabled(false);
+      }
+    }
+    fetchCollaborationSetting();
+  }, [location.pathname]);
+
+  // Filter menu items based on user role and collaboration settings
   const filteredNavItems = MENU_ITEMS.filter(item => {
     if (!profile) return false;
+    if (item.path === '/dashboard/templates') {
+      return profile.role === 'super_admin' || (profile.role === 'customer' && collaborationEnabled);
+    }
     return item.roles.includes(profile.role);
   });
 
-  // Verify access for current route based on MENU_ITEMS and user role
+  // Verify access for current route based on MENU_ITEMS, user role and settings
   useEffect(() => {
     if (profile) {
       const currentPath = location.pathname;
@@ -89,12 +116,19 @@ export default function DashboardLayout() {
         currentPath === item.path || (currentPath.startsWith(item.path) && item.path !== '/dashboard')
       );
 
-      if (activeMenuItem && !activeMenuItem.roles.includes(profile.role)) {
-        // User does not have the required role for this route
-        navigate('/dashboard', { replace: true });
+      if (activeMenuItem) {
+        if (activeMenuItem.path === '/dashboard/templates') {
+          const isAllowed = profile.role === 'super_admin' || (profile.role === 'customer' && collaborationEnabled);
+          if (!isAllowed) {
+            navigate('/dashboard', { replace: true });
+          }
+        } else if (!activeMenuItem.roles.includes(profile.role)) {
+          // User does not have the required role for this route
+          navigate('/dashboard', { replace: true });
+        }
       }
     }
-  }, [location.pathname, profile, navigate]);
+  }, [location.pathname, profile, navigate, collaborationEnabled]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex">

@@ -96,4 +96,44 @@ class RsvpService extends BaseService<T.Rsvp> {
 }
 export const rsvpService = new RsvpService();
 
+class MusicLibraryService extends BaseService<T.MusicLibrary> {
+  constructor() {
+    super('music_library');
+  }
+
+  async uploadAndSaveTrack(
+    file: File,
+    title: string,
+    artist: string,
+    isPrivate: boolean,
+    userId: string,
+    role: string
+  ): Promise<T.MusicLibrary> {
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'mp3';
+    let filePath = '';
+    
+    if (role === 'super_admin' && !isPrivate) {
+      filePath = `shared/music/bgm_${Date.now()}.${fileExt}`;
+    } else {
+      filePath = `${userId}/music/bgm_${Date.now()}.${fileExt}`;
+    }
+
+    // Dynamic import to prevent circular dependency
+    const { storageService } = await import('./storageService');
+    const publicUrl = await storageService.uploadFile(file, 'music', filePath);
+
+    const newTrack = await this.create({
+      title,
+      artist: artist || 'Unknown',
+      url: publicUrl,
+      is_private: isPrivate,
+      created_by: userId,
+    });
+
+    return newTrack;
+  }
+}
+export const musicLibraryService = new MusicLibraryService();
+
 export { storageService } from './storageService';
+

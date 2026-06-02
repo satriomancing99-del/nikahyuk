@@ -159,3 +159,14 @@ export interface Promo {
   created_at: string;
   updated_at: string;
 }
+
+export interface MusicLibrary {
+  id: string;
+  title: string;
+  artist: string;
+  url: string;
+  is_private: boolean;
+  created_by: string;
+  created_at: string;
+}
+

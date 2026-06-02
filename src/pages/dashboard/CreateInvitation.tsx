@@ -3,12 +3,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Heart, Calendar, MapPin, Music, Upload, CheckCircle2, ChevronRight, 
   ChevronLeft, Plus, Trash2, ArrowRight, Check, AlertCircle, Info,
-  ExternalLink, CreditCard, Gift, Loader2, Lock, Sparkles
+  ExternalLink, CreditCard, Gift, Loader2, Lock, Sparkles,
+  Play, Pause
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
-import { templateService, invitationService, eventService, giftService, mediaService, storageService } from '../../services';
-import { Template } from '../../types/database.types';
+import { templateService, invitationService, eventService, giftService, mediaService, storageService, musicLibraryService } from '../../services';
+import { Template, MusicLibrary } from '../../types/database.types';
 import { supabase } from '../../lib/supabase';
+import { getTemplateThumbnail } from '../../utils/templateThumbnails';
 
 // Initial fallback templates to seed if none exist
 const FALLBACK_TEMPLATES = [
@@ -18,7 +20,7 @@ const FALLBACK_TEMPLATES = [
     slug: 'classic-silver',
     category: 'Classic',
     price: 0, // Silver
-    thumbnail_url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=400',
+    thumbnail_url: getTemplateThumbnail('classic-silver'),
     preview_url: '/preview/classic',
     status: 'active'
   },
@@ -27,7 +29,7 @@ const FALLBACK_TEMPLATES = [
     slug: 'classic-gold',
     category: 'Classic',
     price: 99000, // Gold
-    thumbnail_url: 'https://images.unsplash.com/photo-1507504038482-7621c37c2b62?auto=format&fit=crop&q=80&w=400',
+    thumbnail_url: getTemplateThumbnail('classic-gold'),
     preview_url: '/preview/classic',
     status: 'active'
   },
@@ -36,7 +38,7 @@ const FALLBACK_TEMPLATES = [
     slug: 'classic-platinum',
     category: 'Classic',
     price: 149000, // Platinum
-    thumbnail_url: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=400',
+    thumbnail_url: getTemplateThumbnail('classic-platinum'),
     preview_url: '/preview/classic',
     status: 'active'
   },
@@ -47,7 +49,7 @@ const FALLBACK_TEMPLATES = [
     slug: 'rustic-silver',
     category: 'Rustic',
     price: 0, // Silver
-    thumbnail_url: 'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&q=80&w=400',
+    thumbnail_url: getTemplateThumbnail('rustic-silver'),
     preview_url: '/preview/rustic',
     status: 'active'
   },
@@ -56,7 +58,7 @@ const FALLBACK_TEMPLATES = [
     slug: 'rustic',
     category: 'Rustic',
     price: 99000, // Gold
-    thumbnail_url: 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&q=80&w=400',
+    thumbnail_url: getTemplateThumbnail('rustic'),
     preview_url: '/preview/rustic',
     status: 'active'
   },
@@ -65,7 +67,7 @@ const FALLBACK_TEMPLATES = [
     slug: 'rustic-platinum',
     category: 'Rustic',
     price: 149000, // Platinum
-    thumbnail_url: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&q=80&w=400',
+    thumbnail_url: getTemplateThumbnail('rustic-platinum'),
     preview_url: '/preview/rustic',
     status: 'active'
   },
@@ -76,7 +78,7 @@ const FALLBACK_TEMPLATES = [
     slug: 'minimalist-silver',
     category: 'Minimalist',
     price: 0, // Silver
-    thumbnail_url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=400',
+    thumbnail_url: getTemplateThumbnail('minimalist-silver'),
     preview_url: '/preview/minimalist',
     status: 'active'
   },
@@ -85,7 +87,7 @@ const FALLBACK_TEMPLATES = [
     slug: 'minimalist-gold',
     category: 'Minimalist',
     price: 99000, // Gold
-    thumbnail_url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=400',
+    thumbnail_url: getTemplateThumbnail('minimalist-gold'),
     preview_url: '/preview/minimalist',
     status: 'active'
   },
@@ -94,7 +96,7 @@ const FALLBACK_TEMPLATES = [
     slug: 'minimalist',
     category: 'Minimalist',
     price: 149000, // Platinum
-    thumbnail_url: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=400',
+    thumbnail_url: getTemplateThumbnail('minimalist'),
     preview_url: '/preview/minimalist',
     status: 'active'
   },
@@ -105,7 +107,7 @@ const FALLBACK_TEMPLATES = [
     slug: 'islamic-silver',
     category: 'Islamic',
     price: 0, // Silver
-    thumbnail_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400',
+    thumbnail_url: getTemplateThumbnail('islamic-silver'),
     preview_url: '/preview/islamic',
     status: 'active'
   },
@@ -114,7 +116,7 @@ const FALLBACK_TEMPLATES = [
     slug: 'islamic',
     category: 'Islamic',
     price: 99000, // Gold
-    thumbnail_url: 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&q=80&w=400',
+    thumbnail_url: getTemplateThumbnail('islamic'),
     preview_url: '/preview/islamic',
     status: 'active'
   },
@@ -123,7 +125,7 @@ const FALLBACK_TEMPLATES = [
     slug: 'islamic-platinum',
     category: 'Islamic',
     price: 149000, // Platinum
-    thumbnail_url: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80&w=400',
+    thumbnail_url: getTemplateThumbnail('islamic-platinum'),
     preview_url: '/preview/islamic',
     status: 'active'
   },
@@ -134,7 +136,7 @@ const FALLBACK_TEMPLATES = [
     slug: 'floral-silver',
     category: 'Floral',
     price: 0, // Silver
-    thumbnail_url: 'https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&q=80&w=400',
+    thumbnail_url: getTemplateThumbnail('floral-silver'),
     preview_url: '/preview/floral',
     status: 'active'
   },
@@ -143,7 +145,7 @@ const FALLBACK_TEMPLATES = [
     slug: 'floral-gold',
     category: 'Floral',
     price: 99000, // Gold
-    thumbnail_url: 'https://images.unsplash.com/photo-1533616688419-b7a585564566?auto=format&fit=crop&q=80&w=400',
+    thumbnail_url: getTemplateThumbnail('floral-gold'),
     preview_url: '/preview/floral',
     status: 'active'
   },
@@ -152,7 +154,7 @@ const FALLBACK_TEMPLATES = [
     slug: 'floral',
     category: 'Floral',
     price: 149000, // Platinum
-    thumbnail_url: 'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?auto=format&fit=crop&q=80&w=400',
+    thumbnail_url: getTemplateThumbnail('floral'),
     preview_url: '/preview/floral',
     status: 'active'
   },
@@ -163,7 +165,7 @@ const FALLBACK_TEMPLATES = [
     slug: 'elegance-typique',
     category: 'Typography',
     price: 0, // Available to all tiers (Silver, Gold, Platinum)
-    thumbnail_url: 'https://images.unsplash.com/photo-1473177104440-ffee2f376098?auto=format&fit=crop&q=80&w=400',
+    thumbnail_url: getTemplateThumbnail('elegance-typique'),
     preview_url: '/preview/elegance-typique',
     status: 'active'
   }
@@ -240,6 +242,13 @@ export default function CreateInvitation() {
   useEffect(() => {
     async function checkPurchasedPackage() {
       if (!user) return;
+
+      // Superadmin can access all features instantly (Platinum package)
+      if (profile?.role === 'super_admin') {
+        setActivePackage('platinum');
+        return;
+      }
+
       try {
         // Fetch successful transactions for the user
         const { data: txs, error } = await supabase
@@ -266,7 +275,7 @@ export default function CreateInvitation() {
       }
     }
     checkPurchasedPackage();
-  }, [user]);
+  }, [user, profile]);
 
   const templateParam = searchParams.get('template') || '';
   const [activeStep, setActiveStep] = useState(1);
@@ -377,6 +386,15 @@ export default function CreateInvitation() {
   const [waThumbnailUrl, setWaThumbnailUrl] = useState<string>('');
   const [musicFile, setMusicFile] = useState<File | null>(null);
   const [musicFileName, setMusicFileName] = useState('');
+  
+  // Shared BGM Library states
+  const [libraryBgms, setLibraryBgms] = useState<MusicLibrary[]>([]);
+  const [bgmsLoading, setBgmsLoading] = useState(true);
+  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
+  const playAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [isUploadingPrivateBgm, setIsUploadingPrivateBgm] = useState(false);
+  const [selectedLibraryBgmId, setSelectedLibraryBgmId] = useState<string>('');
+
   
   // Gallery files: array of { file: File, preview: string, caption: string }
   const [galleryItems, setGalleryItems] = useState<Array<{ file: File; preview: string; caption: string }>>([]);
@@ -560,6 +578,112 @@ export default function CreateInvitation() {
     if (activePackage === 'gold') return price <= 99000;
     return true; // platinum can access all
   });
+
+  // Load BGM library for the wizard
+  const loadBgmLibrary = async () => {
+    try {
+      setBgmsLoading(true);
+      const list = await musicLibraryService.getAll();
+      setLibraryBgms(list || []);
+      
+      // If we already have a musicUrl selected, match it with library song ID
+      if (mempelai.music_url) {
+        const matched = list?.find(track => track.url === mempelai.music_url);
+        if (matched) {
+          setSelectedLibraryBgmId(matched.id);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching BGM library:', err);
+    } finally {
+      setBgmsLoading(false);
+    }
+  };
+
+  const togglePlayTrack = (trackId: string, url: string) => {
+    if (playingTrackId === trackId) {
+      playAudioRef.current?.pause();
+      setPlayingTrackId(null);
+    } else {
+      if (playAudioRef.current) {
+        playAudioRef.current.pause();
+      }
+      playAudioRef.current = new Audio(url);
+      playAudioRef.current.play();
+      setPlayingTrackId(trackId);
+      playAudioRef.current.onended = () => {
+        setPlayingTrackId(null);
+      };
+    }
+  };
+
+  const handleUploadPrivateBgm = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('audio/') && !file.name.endsWith('.mp3')) {
+      alert('Tipe file tidak didukung. File harus berupa MP3.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Ukuran file musik terlalu besar. Maksimal adalah 10 MB.');
+      return;
+    }
+
+    if (!user) {
+      alert('Silakan login terlebih dahulu.');
+      return;
+    }
+
+    setIsUploadingPrivateBgm(true);
+    try {
+      const songTitle = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+      
+      // Upload custom private music
+      const track = await musicLibraryService.uploadAndSaveTrack(
+        file,
+        songTitle,
+        profile?.name || 'Pribadi',
+        true, // Private track
+        user.id,
+        profile?.role || 'customer'
+      );
+
+      // Refresh list, select the song and update the parent invitation state
+      alert('Musik pribadi berhasil diunggah dan disimpan ke perpustakaan Platinum Anda!');
+      await loadBgmLibrary();
+      
+      setSelectedLibraryBgmId(track.id);
+      setMusicFile(null);
+      setMusicFileName(track.title);
+      
+      // Update invitation state directly with the URL
+      // We also update local mempelai state so it saves
+      setMempelai(prev => ({
+        ...prev,
+        music_url: track.url
+      }));
+    } catch (err: any) {
+      console.error('Error uploading private BGM:', err);
+      alert(err.message || 'Gagal mengunggah BGM privat.');
+    } finally {
+      setIsUploadingPrivateBgm(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      loadBgmLibrary();
+    }
+  }, [user, mempelai.music_url]);
+
+  useEffect(() => {
+    return () => {
+      if (playAudioRef.current) {
+        playAudioRef.current.pause();
+      }
+    };
+  }, []);
 
   // Check if we are in EDIT mode
   const editId = searchParams.get('id');
@@ -993,7 +1117,7 @@ export default function CreateInvitation() {
       if (!eventResepsi.address.trim()) return 'Alamat lokasi Resepsi wajib diisi.';
     }
     if (activeStep === 5) {
-      if (activePackage === 'silver') {
+      if (activePackage === 'silver' && profile?.role !== 'super_admin') {
         // Silver package skips gift validation entirely as E-Gift is locked/empty
         return null;
       }
@@ -1008,7 +1132,7 @@ export default function CreateInvitation() {
           if (!g.account_number.trim()) return `Nomor HP E-Wallet di baris ${i + 1} wajib diisi.`;
           if (!g.account_name.trim()) return `Nama Pemisah di baris ${i + 1} wajib diisi.`;
         } else if (g.type === 'Kirim Kado') {
-          if (activePackage === 'gold') {
+          if (activePackage === 'gold' && profile?.role !== 'super_admin') {
             return `Metode kado fisik di baris ${i + 1} hanya tersedia untuk paket Platinum.`;
           }
           if (!g.address.trim()) return `Alamat pengiriman Kado di baris ${i + 1} wajib diisi.`;
@@ -1290,7 +1414,7 @@ export default function CreateInvitation() {
             google_maps_url: eventResepsi.google_maps_url,
           }
         ],
-        gifts: activePackage !== 'silver' ? giftsList
+        gifts: (activePackage !== 'silver' || profile?.role === 'super_admin') ? giftsList
           .filter(g => {
             if (g.type === 'Bank' || g.type === 'E-Wallet') {
               return g.account_number?.trim() !== '' && g.account_name?.trim() !== '';
@@ -1328,9 +1452,54 @@ export default function CreateInvitation() {
       try {
         localStorage.setItem('draft_invitation_preview', JSON.stringify(draftData));
       } catch (e) {
-        console.warn('LocalStorage preview draft write failed:', e);
-        // Fallback: still attempt to open preview, but alert user that images may not render fully if quota exceeded
-        alert('Perhatian: Memori penyimpanan penuh. Gambar pratinjau resolusi tinggi Anda mungkin tidak tampil sepenuhnya di tab baru. Disarankan untuk meminimalkan ukuran file foto Anda.');
+        console.warn('LocalStorage preview draft write failed, attempting to prune old drafts...', e);
+        
+        // Self-healing: prune old unused drafts
+        try {
+          const keysToRemove: string[] = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key) {
+              if (key.startsWith('nikahyuk_edit_draft_') && key !== `nikahyuk_edit_draft_${editId}`) {
+                keysToRemove.push(key);
+              }
+              if (editId && key === 'nikahyuk_creation_draft') {
+                keysToRemove.push(key);
+              }
+            }
+          }
+          keysToRemove.forEach(key => localStorage.removeItem(key));
+        } catch (pruneErr) {
+          console.error('Error pruning localStorage:', pruneErr);
+        }
+
+        // Retry setting preview draft
+        try {
+          localStorage.setItem('draft_invitation_preview', JSON.stringify(draftData));
+        } catch (retryErr) {
+          console.warn('LocalStorage retry also failed, saving without large images...', retryErr);
+          
+          // Fallback: save without massive Base64 images to keep preview functional
+          const strippedDraft = {
+            ...draftData,
+            invitation: {
+              ...draftData.invitation,
+              thumbnail_url: selectedTemplate.thumbnail_url
+            },
+            gallery: draftData.gallery.map(item => ({
+              ...item,
+              url: item.caption === 'groom_photo' || item.caption === 'bride_photo' ? '' : selectedTemplate.thumbnail_url
+            }))
+          };
+
+          try {
+            localStorage.setItem('draft_invitation_preview', JSON.stringify(strippedDraft));
+            alert('Perhatian: Memori penyimpanan penuh. Halaman pratinjau berhasil dibuka tetapi beberapa foto kustom Anda disembunyikan agar pratinjau tetap berjalan.');
+          } catch (finalErr) {
+            console.error('Final localStorage write failed:', finalErr);
+            alert('Perhatian: Memori penyimpanan penuh. Gambar pratinjau kustom tidak dapat ditampilkan. Disarankan untuk meminimalkan ukuran file foto Anda.');
+          }
+        }
       }
       window.open(`/preview/${selectedTemplate.slug}?preview=true`, '_blank');
     } catch (e) {
@@ -1533,7 +1702,7 @@ export default function CreateInvitation() {
       });
 
       // Step 4: Insert Gifts
-      if (activePackage !== 'silver') {
+      if (activePackage !== 'silver' || profile?.role === 'super_admin') {
         const validGifts = giftsList.filter(g => {
           if (g.type === 'Bank' || g.type === 'E-Wallet') {
             return g.account_number?.trim() !== '' && g.account_name?.trim() !== '';
@@ -1725,7 +1894,7 @@ export default function CreateInvitation() {
                     >
                       <div className="aspect-[4/3] bg-gray-100 overflow-hidden relative">
                         <img 
-                          src={tpl.thumbnail_url} 
+                          src={getTemplateThumbnail(tpl.slug) || tpl.thumbnail_url} 
                           alt={tpl.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                           referrerPolicy="no-referrer"
@@ -2120,41 +2289,166 @@ export default function CreateInvitation() {
                   </div>
                 </div>
 
-                {/* Music Upload */}
-                <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200">
-                  <label className="block text-sm font-bold text-gray-900 mb-1">Musik Pengiring (BGM)</label>
-                  <p className="text-xs text-gray-500 mb-4 font-normal">Pilih musik berformat MP3 (maks 10MB) untuk mengiringi tamu saat membaca rincian undangan cinta kalian.</p>
-                  
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center text-primary-500">
-                      <Music className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-gray-900 truncate">
-                        {activePackage === 'silver' ? 'Latar Musik Bawaan (Instrumen)' : (musicFileName || 'Belum memilih musik')}
-                      </p>
-                      <p className="text-[10px] text-gray-550">
-                        {activePackage === 'silver' ? 'Terkunci (Paket Silver)' : 'Hanya file MP3'}
-                      </p>
-                    </div>
-                    {activePackage === 'silver' ? (
-                      <button
-                        type="button"
-                        onClick={() => alert('Unggah musik kustom hanya tersedia untuk paket Gold & Platinum. Silakan upgrade paket Anda.')}
-                        className="bg-gray-100 border border-gray-200 text-gray-400 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-not-allowed"
-                      >
-                        <Lock className="w-3.5 h-3.5" /> Terkunci
-                      </button>
+                {/* Music Selector & Library */}
+                <div className="bg-white p-6 rounded-3xl border border-gray-150 shadow-sm space-y-6">
+                  <div>
+                    <label className="block text-sm font-extrabold text-gray-900 flex items-center gap-1.5">
+                      🎵 Musik Latar Undangan (BGM)
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1 font-normal">
+                      Pilih musik romantis dari perpustakaan premium NikahYuk! untuk mengiringi tamu saat membaca undangan bahagia kalian.
+                    </p>
+                  </div>
+
+                  {/* BGM Library List */}
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                      Perpustakaan Lagu Premium
+                    </span>
+
+                    {bgmsLoading ? (
+                      <div className="py-6 text-center space-y-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary-500 mx-auto" />
+                        <p className="text-[10px] text-gray-400">Memuat koleksi lagu...</p>
+                      </div>
+                    ) : libraryBgms.length === 0 ? (
+                      <div className="py-6 text-center border border-dashed border-gray-200 rounded-2xl bg-gray-50">
+                        <p className="text-xs text-gray-450">Belum ada lagu bersama yang tersedia.</p>
+                      </div>
                     ) : (
-                      <label className="cursor-pointer bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm">
-                        Pilih MP3
-                        <input 
-                          type="file" 
-                          accept="audio/mp3, audio/mpeg"
-                          className="hidden" 
-                          onChange={handleMusicChange} 
-                        />
-                      </label>
+                      <div className="space-y-2 max-h-[190px] overflow-y-auto pr-1">
+                        {libraryBgms.map((track) => {
+                          const isSelected = mempelai.music_url === track.url;
+                          const isPlaying = playingTrackId === track.id;
+
+                          return (
+                            <div 
+                              key={track.id}
+                              className={`flex items-center justify-between p-2.5 rounded-xl border transition duration-200 ${
+                                isSelected
+                                  ? 'bg-primary-50/50 border-primary-300 ring-1 ring-primary-300'
+                                  : 'bg-gray-55 border-gray-250 hover:bg-gray-100/70'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                <button
+                                  type="button"
+                                  onClick={() => togglePlayTrack(track.id, track.url)}
+                                  className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition ${
+                                    isPlaying
+                                      ? 'bg-emerald-500 text-white animate-pulse'
+                                      : 'bg-white text-gray-600 border border-gray-200 hover:bg-primary-50 hover:text-primary-600 shadow-xs'
+                                  }`}
+                                >
+                                  {isPlaying ? (
+                                    <Pause className="w-3.5 h-3.5 fill-current" />
+                                  ) : (
+                                    <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                                  )}
+                                </button>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-xs font-bold text-gray-900 truncate flex items-center gap-1.5">
+                                    {track.title}
+                                    {track.is_private && (
+                                      <span className="text-[9px] font-bold bg-amber-100 text-amber-800 px-1 py-0.2 rounded-sm uppercase flex items-center gap-0.5">
+                                        <Sparkles className="w-2 h-2 fill-current" /> Privat
+                                      </span>
+                                    )}
+                                  </p>
+                                  <p className="text-[10px] text-gray-500 truncate">{track.artist}</p>
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedLibraryBgmId(track.id);
+                                  setMusicFile(null);
+                                  setMusicFileName(track.title);
+                                  setMempelai(prev => ({
+                                    ...prev,
+                                    music_url: track.url
+                                  }));
+                                }}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition shadow-xs ${
+                                  isSelected
+                                    ? 'bg-primary-600 text-white hover:bg-primary-700'
+                                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                                }`}
+                              >
+                                {isSelected ? 'Terpilih' : 'Pilih'}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Private custom upload panel */}
+                  <div className="pt-4 border-t border-gray-100 space-y-3">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                      Unggah Musik Kustom Mandiri
+                    </span>
+
+                    {(activePackage === 'platinum' || profile?.role === 'super_admin') ? (
+                      <div className="bg-gradient-to-br from-primary-50 to-indigo-50 border border-primary-100 p-4 rounded-2xl space-y-3">
+                        <div className="flex gap-2">
+                          <Sparkles className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <h4 className="text-xs font-bold text-primary-900">Keuntungan Platinum Anda!</h4>
+                            <p className="text-[10.5px] text-primary-700 leading-normal">
+                              Sebagai kustomer Platinum, Anda berhak mengunggah musik MP3 pilihan sendiri ke perpustakaan privat Anda secara permanen.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <label className="cursor-pointer bg-primary-600 hover:bg-primary-700 disabled:bg-primary-350 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs select-none">
+                            {isUploadingPrivateBgm ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Mengunggah...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-3.5 h-3.5" /> Unggah Lagu MP3
+                              </>
+                            )}
+                            <input 
+                              type="file"
+                              accept="audio/mp3, audio/mpeg"
+                              disabled={isUploadingPrivateBgm}
+                              onChange={handleUploadPrivateBgm}
+                              className="hidden"
+                            />
+                          </label>
+                          <span className="text-[10px] text-gray-500">
+                            Hanya file MP3 (Maksimal 10MB)
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div 
+                        onClick={() => alert('Unggah musik MP3 kustom kustomer adalah fitur eksklusif kustomer Paket Platinum. Silakan gunakan lagu premium gratis yang tersedia di atas, atau upgrade paket Anda ke Platinum untuk mengunggah musik pribadi!')}
+                        className="bg-gray-50 hover:bg-gray-100 border border-dashed border-gray-250 p-4 rounded-2xl cursor-pointer transition flex items-center justify-between gap-4"
+                      >
+                        <div className="flex gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 flex-shrink-0">
+                            <Lock className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-bold text-gray-800 flex items-center gap-1">
+                              Unggah Lagu Pribadi Anda <span className="text-[9px] font-bold bg-amber-100 text-amber-800 px-1 py-0.2 rounded-sm uppercase tracking-wide">👑 Gold / Silver</span>
+                            </h4>
+                            <p className="text-[10px] text-gray-500 leading-normal">
+                              Miliki kebebasan mengunggah lagu MP3 romantis buatan sendiri khusus untuk undangan Anda.
+                            </p>
+                          </div>
+                        </div>
+                        <button type="button" className="text-xs font-bold text-primary-600 hover:text-primary-700 whitespace-nowrap">
+                          Upgrade
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -2166,11 +2460,11 @@ export default function CreateInvitation() {
                   <div className="flex justify-between items-center mb-2">
                     <label className="block text-sm font-bold text-gray-900">Galeri Foto Pernikahan</label>
                     <span className="text-[10px] text-gray-500 font-bold bg-white border px-2 py-0.5 rounded-full">
-                      {galleryItems.length} / {activePackage === 'silver' ? '3' : activePackage === 'gold' ? '8' : '12'} Foto
+                      {galleryItems.length} / {(activePackage === 'platinum' || profile?.role === 'super_admin') ? '12' : activePackage === 'gold' ? '8' : '3'} Foto
                     </span>
                   </div>
                   <p className="text-xs text-gray-550 mb-4">
-                    Unggah kumpulan foto prewedding terbaik Anda (Maksimal {activePackage === 'silver' ? '3' : activePackage === 'gold' ? '8' : '12'} Foto untuk Paket {activePackage.toUpperCase()}).
+                    Unggah kumpulan foto prewedding terbaik Anda (Maksimal {(activePackage === 'platinum' || profile?.role === 'super_admin') ? '12' : activePackage === 'gold' ? '8' : '3'} Foto untuk Paket {(activePackage === 'platinum' || profile?.role === 'super_admin') ? 'PLATINUM' : activePackage.toUpperCase()}).
                   </p>
 
                   <div className="grid grid-cols-3 gap-3 max-h-[220px] overflow-y-auto mb-4 pr-1">
@@ -2223,7 +2517,7 @@ export default function CreateInvitation() {
               <p className="text-sm text-gray-500 mt-1">Sediakan bank transfer atau e-wallet untuk kado pernikahan tanpa tatap muka bagi kerabat jauh.</p>
             </div>
 
-            {activePackage === 'silver' ? (
+            {(activePackage === 'silver' && profile?.role !== 'super_admin') ? (
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center space-y-3">
                 <Gift className="w-12 h-12 text-amber-500 mx-auto" />
                 <h4 className="font-bold text-amber-800">Fitur Kado Digital Terkunci</h4>
@@ -2251,7 +2545,7 @@ export default function CreateInvitation() {
                             value={gift.type}
                             onChange={(e) => {
                               const val = e.target.value;
-                              if (val === 'Kirim Kado' && activePackage === 'gold') {
+                              if (val === 'Kirim Kado' && activePackage === 'gold' && profile?.role !== 'super_admin') {
                                 alert("Metode 'Kirim Kado Fisik' hanya tersedia untuk paket Platinum. Silakan pilih Transfer Bank atau E-Wallet.");
                                 return;
                               }
@@ -2261,7 +2555,7 @@ export default function CreateInvitation() {
                           >
                             <option value="Bank">Transfer Bank</option>
                             <option value="E-Wallet">Dompet Digital (E-Wallet)</option>
-                            {activePackage === 'platinum' ? (
+                            {(activePackage === 'platinum' || profile?.role === 'super_admin') ? (
                               <option value="Kirim Kado">Kirim Kado Fisik</option>
                             ) : (
                               <option value="Kirim Kado" disabled>Kirim Kado Fisik (Hanya Platinum)</option>
