@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { 
   Plus, Mail, Calendar, Users, Settings, ArrowUpRight, Copy, Check, ExternalLink, Trash2, Loader2
 } from 'lucide-react';
@@ -9,10 +9,21 @@ import { Invitation } from '../../types/database.types';
 
 export default function Invitations() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, profile } = useAuthStore();
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (location.state && (location.state as any).showDonation) {
+      const timer = setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('open-donation-modal'));
+      }, 500);
+      window.history.replaceState({}, document.title);
+      return () => clearTimeout(timer);
+    }
+  }, [location]);
 
   useEffect(() => {
     async function loadInvitations() {

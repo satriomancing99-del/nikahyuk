@@ -1830,7 +1830,7 @@ export default function CreateInvitation() {
         localStorage.removeItem(`nikahyuk_edit_draft_${editId}`);
       }
       alert(editId ? 'Selamat! Undangan digital Anda berhasil diperbarui.' : 'Selamat! Undangan digital Anda berhasil dibuat dan diterbitkan.');
-      navigate('/dashboard/invitations');
+      navigate('/dashboard/invitations', { state: { showDonation: !editId } });
     } catch (err: any) {
       console.error('Failure saving invitation data:', err);
       alert(`Gagal menyimpan invitation: ${err.message || 'Kesalahan sistem'}`);

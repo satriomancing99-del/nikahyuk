@@ -36,6 +36,15 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [hasPaid, setHasPaid] = useState<boolean | null>(null);
+  const [donationModalOpen, setDonationModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpenModal = () => setDonationModalOpen(true);
+    window.addEventListener('open-donation-modal', handleOpenModal);
+    return () => {
+      window.removeEventListener('open-donation-modal', handleOpenModal);
+    };
+  }, []);
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -158,24 +167,52 @@ export default function DashboardLayout() {
           </button>
         </div>
 
-        <nav className="p-4 space-y-1 h-[calc(100vh-4rem)] overflow-y-auto">
-          {filteredNavItems.map((item) => {
-             const isActive = location.pathname === item.path || (location.pathname.startsWith(item.path) && item.path !== '/dashboard');
-             return (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive 
-                    ? 'bg-primary-50 text-primary-700' 
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
-              >
-                <item.icon className={`w-5 h-5 ${isActive ? 'text-primary-500' : 'text-gray-400'}`} />
-                {item.name}
-              </Link>
-            )
-          })}
+        <nav className="p-4 space-y-1 h-[calc(100vh-4rem)] overflow-y-auto flex flex-col justify-between">
+          <div className="space-y-1">
+            {filteredNavItems.map((item) => {
+               const isActive = location.pathname === item.path || (location.pathname.startsWith(item.path) && item.path !== '/dashboard');
+               return (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive 
+                      ? 'bg-primary-50 text-primary-700' 
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
+                  <item.icon className={`w-5 h-5 ${isActive ? 'text-primary-500' : 'text-gray-400'}`} />
+                  {item.name}
+                </Link>
+              )
+            })}
+          </div>
+
+          {/* Card Donasi Traktir Kopi Admin */}
+          {profile?.role === 'customer' && (
+            <div className="mt-8 p-4 bg-gradient-to-br from-pink-50 to-rose-50/60 rounded-2xl border border-pink-100/80 shadow-xs relative overflow-hidden group">
+              <div className="absolute -right-3 -bottom-3 w-12 h-12 rounded-full bg-pink-100/50 blur-xl group-hover:scale-125 transition-transform duration-500" />
+              
+              <div className="relative z-10 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-base animate-pulse">☕</span>
+                  <span className="text-[10px] font-bold text-gray-800 uppercase tracking-wider">Traktir Kopi Admin</span>
+                </div>
+                <p className="text-[10.5px] text-gray-500 leading-normal">
+                  Suka dengan <b>nikahyuk!</b>? Yuk dukung biaya sewa server agar platform tetap aktif membantu kustomer secara gratis!
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('open-donation-modal'));
+                  }}
+                  className="w-full py-1.5 px-3 bg-pink-600 hover:bg-pink-700 active:scale-95 transition-all text-white font-bold text-[10px] rounded-xl flex items-center justify-center gap-1.5 shadow-sm shadow-pink-500/10 cursor-pointer select-none"
+                >
+                  <ScanLine className="w-3.5 h-3.5" /> Donasi QRIS Instan
+                </button>
+              </div>
+            </div>
+          )}
         </nav>
       </aside>
 
@@ -285,6 +322,63 @@ export default function DashboardLayout() {
           </a>
         )}
       </div>
+
+      {/* Global Donation Modal */}
+      {donationModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-gray-100 flex flex-col items-center text-center space-y-4 animate-in zoom-in-95 duration-300 relative overflow-hidden my-8">
+            {/* Top decorative pink bar */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-pink-500 via-rose-500 to-primary-500" />
+            
+            {/* Heart and Coffee Pulse visual */}
+            <div className="relative mt-2">
+              <div className="w-16 h-16 rounded-full bg-pink-50 flex items-center justify-center animate-pulse text-3xl">
+                ☕
+              </div>
+              <span className="absolute -top-1 -right-1 text-base animate-bounce">❤️</span>
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-extrabold text-gray-900 tracking-tight">Dukung Server nikahyuk!</h3>
+              <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Donasi Sukarela Untuk Admin</p>
+            </div>
+
+            <p className="text-[11.5px] text-gray-500 leading-relaxed px-1">
+              Hai Kak! Terima kasih banyak telah menggunakan layanan kami. Platform ini dikelola secara mandiri oleh admin agar tetap gratis & terjangkau bagi semua kalangan.
+            </p>
+            
+            <p className="text-[11px] text-pink-700 bg-pink-50/70 border border-pink-100 rounded-2xl p-3 leading-relaxed">
+              Kebaikan kecil Kakak sangat berarti untuk kelangsungan biaya sewa server platform kami. Berapapun donasi Kakak, admin doakan semoga pernikahan Kakak berdua penuh berkah, sakinah, mawaddah, warahmah. Aamiin! 🌸
+            </p>
+
+            {/* QRIS Code Image Frame */}
+            <div className="bg-gray-50 p-3 rounded-2xl border border-gray-150 shadow-inner w-full flex flex-col items-center space-y-2">
+              <div className="bg-white p-2 rounded-xl border border-gray-200 overflow-hidden w-full max-w-[210px] aspect-square flex items-center justify-center">
+                <img 
+                  src="/qris.png" 
+                  alt="QRIS Donasi Admin NikahYuk" 
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div className="text-[10px] text-gray-400 font-mono text-center font-bold">
+                NMID: ID1026486428935 | Merchant: M-nox
+              </div>
+            </div>
+
+            <p className="text-[9.5px] text-gray-400 leading-normal max-w-[280px]">
+              Silakan pindai barcode QRIS di atas menggunakan GoPay, OVO, Dana, ShopeePay, LinkAja, atau aplikasi m-Banking Anda.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setDonationModalOpen(false)}
+              className="w-full py-2.5 px-4 bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95 cursor-pointer select-none"
+            >
+              Tutup & Lanjutkan
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
