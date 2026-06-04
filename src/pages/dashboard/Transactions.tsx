@@ -592,6 +592,14 @@ export default function Transactions() {
       const finalAmount = isEligibleForPromo ? getDiscountedPrice(pkg.price) : pkg.price;
       const promoCodeUsed = isEligibleForPromo ? appliedPromo.code : null;
       
+      const isFree = finalAmount === 0;
+      const activePeriodDays = pkg.active_period || 365;
+      const activatedAt = isFree ? new Date() : null;
+      const expiredAt = isFree ? new Date() : null;
+      if (isFree && expiredAt) {
+        expiredAt.setDate(expiredAt.getDate() + activePeriodDays);
+      }
+
       // Supabase base insert payload
       const { data, error } = await supabase
         .from('transactions')
@@ -602,8 +610,10 @@ export default function Transactions() {
           amount: finalAmount,
           promo_code: promoCodeUsed,
           discount_amount: discountAmount,
-          payment_status: 'pending',
+          payment_status: isFree ? 'success' : 'pending',
           proof_url: '',
+          activated_at: activatedAt ? activatedAt.toISOString() : null,
+          expired_at: expiredAt ? expiredAt.toISOString() : null,
         })
         .select()
         .single();
@@ -617,10 +627,50 @@ export default function Transactions() {
           .update({ usage_count: appliedPromo.usage_count + 1 })
           .eq('id', appliedPromo.id);
       }
+
+      if (isFree && expiredAt) {
+        // Fallback client-side updates (guarantees profile and invitations updates immediately regardless of db triggers)
+        try {
+          // A. Update profile active package
+          await supabase
+            .from('profiles')
+            .update({
+              active_package_id: pkg.id,
+              package_expired_at: expiredAt.toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', profile.id);
+          
+          // B. Update invitation expiry
+          const { data: invs } = await supabase
+            .from('invitations')
+            .select('id')
+            .eq('user_id', profile.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (invs && invs.length > 0) {
+            await supabase
+              .from('invitations')
+              .update({ 
+                expired_at: expiredAt.toISOString(),
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', invs[0].id);
+          }
+        } catch (err) {
+          console.error('Client-side fallback sync error:', err);
+        }
+      }
       
       // Update local transaction state
       setTransactions(prev => [data as Transaction, ...prev]);
-      alert(`Transaksi Pemesanan ${pkg.name} Berhasil Dibuat!\nSilakan lakukan transfer senilai Rp ${finalAmount.toLocaleString('id-ID')} lalu unggah bukti transfer pembayaran di baris transaksi baru Anda.`);
+
+      if (isFree) {
+        alert(`Transaksi Pemesanan ${pkg.name} Berhasil Dibuat & Aktif Otomatis!\nKarena menggunakan promo 100%, Anda tidak perlu mengunggah bukti pembayaran.`);
+      } else {
+        alert(`Transaksi Pemesanan ${pkg.name} Berhasil Dibuat!\nSilakan lakukan transfer senilai Rp ${finalAmount.toLocaleString('id-ID')} lalu unggah bukti transfer pembayaran di baris transaksi baru Anda.`);
+      }
       setShowPurchaseModal(false);
 
       // Reset promo state
