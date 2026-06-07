@@ -18,17 +18,17 @@ import PublicTemplates from './pages/PublicTemplates';
 import PublicPricing from './pages/PublicPricing';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import DashboardOverview from './pages/dashboard/DashboardOverview';
-import TemplatesManager from './pages/dashboard/TemplatesManager';
+import DashboardOverview from './pages/dashboard/overview';
+import TemplatesManager from './pages/dashboard/templates';
 import PlaceholderPage from './pages/dashboard/PlaceholderPage';
-import Invitations from './pages/dashboard/Invitations';
-import CreateInvitation from './pages/dashboard/CreateInvitation';
-import Guests from './pages/dashboard/Guests';
+import Invitations from './pages/dashboard/invitations_list';
+import CreateInvitation from './pages/dashboard/invitation_editor';
+import Guests from './pages/dashboard/guests';
 import PublicInvitation from './pages/PublicInvitation';
-import Rsvp from './pages/dashboard/Rsvp';
-import Transactions from './pages/dashboard/Transactions';
-import Settings from './pages/dashboard/Settings';
-import Wishes from './pages/dashboard/Wishes';
+import Rsvp from './pages/dashboard/rsvp';
+import Transactions from './pages/dashboard/transactions';
+import Settings from './pages/dashboard/settings';
+import Wishes from './pages/dashboard/wishes';
 
 export default function App() {
   return (

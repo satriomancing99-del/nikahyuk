@@ -127,7 +127,58 @@ const bDeco = {
 // Core SVG builder
 // ---------------------------------------------------------------------------
 
-const createMockupSvg = (t: MockupTheme): string => {
+const COUPLE_NAMES = [
+  ['Aditya', 'Aulia'],
+  ['Bimo', 'Nisa'],
+  ['Rian', 'Sari'],
+  ['Dimas', 'Laras'],
+  ['Fajar', 'Dian'],
+  ['Genta', 'Amel'],
+  ['Hendra', 'Rini'],
+  ['Indra', 'Gita'],
+  ['Jaka', 'Wulan'],
+  ['Kurnia', 'Dewi'],
+  ['Rangga', 'Cinta'],
+  ['Reza', 'Fitri'],
+  ['Taufik', 'Hana'],
+  ['Yusuf', 'Zahra']
+];
+
+const getHash = (str: string): number => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash);
+};
+
+const createMockupSvg = (t: MockupTheme, slug: string, name?: string): string => {
+  const hash = getHash(slug + (name || ''));
+  const couple = COUPLE_NAMES[hash % COUPLE_NAMES.length];
+  const groomName = couple[0];
+  const brideName = couple[1];
+
+  const day = (hash % 28) + 1;
+  const month = (hash % 12) + 1;
+  const year = 2026 + (hash % 2);
+  const dateStr = `${day.toString().padStart(2, '0')} . ${month.toString().padStart(2, '0')} . ${year}`;
+
+  const cleanName = name ? (name.length > 20 ? name.substring(0, 17) + '...' : name) : t.line2;
+
+  const extraCircleX = 200 + (hash % 400);
+  const extraCircleY = 100 + (hash % 250);
+  const extraCircleR = 30 + (hash % 50);
+  const extraDeco = `<circle cx="${extraCircleX}" cy="${extraCircleY}" r="${extraCircleR}" fill="${t.accent}" opacity="0.035" />`;
+
+  const leafTransform = (hash % 2 === 0) ? 'transform="scale(-1, 1) translate(-800, 0)"' : '';
+  const leafGroup = `<g ${leafTransform} opacity="${t.leafOp}">
+<path d="M 0 0 Q 32 55,12 110 Q 3 70,0 30 Z" fill="${t.leafColor}"/>
+<path d="M 0 0 Q 58 28,42 75 Q 22 52,8 28 Z" fill="${t.leafColor}" opacity="0.6"/>
+<path d="M 800 450 Q 768 395,788 340 Q 796 385,800 425 Z" fill="${t.leafColor}"/>
+<path d="M 800 450 Q 742 422,758 372 Q 778 398,793 428 Z" fill="${t.leafColor}" opacity="0.6"/>
+<path d="M 800 0 Q 752 38,768 88 Q 788 58,798 25 Z" fill="${t.leafColor}" opacity="0.3"/>
+</g>`;
+
   const feats = [
     { ic: 'cal',  l: 'Countdown Timer',    s: 'Menuju hari bahagia' },
     { ic: 'ppl',  l: 'Informasi Acara',     s: 'Akad &amp; Resepsi' },
@@ -156,13 +207,8 @@ const createMockupSvg = (t: MockupTheme): string => {
 </defs>
 <rect width="800" height="450" fill="url(#bg)"/>
 ${t.bgDeco}
-<g opacity="${t.leafOp}">
-<path d="M 0 0 Q 32 55,12 110 Q 3 70,0 30 Z" fill="${t.leafColor}"/>
-<path d="M 0 0 Q 58 28,42 75 Q 22 52,8 28 Z" fill="${t.leafColor}" opacity="0.6"/>
-<path d="M 800 450 Q 768 395,788 340 Q 796 385,800 425 Z" fill="${t.leafColor}"/>
-<path d="M 800 450 Q 742 422,758 372 Q 778 398,793 428 Z" fill="${t.leafColor}" opacity="0.6"/>
-<path d="M 800 0 Q 752 38,768 88 Q 788 58,798 25 Z" fill="${t.leafColor}" opacity="0.3"/>
-</g>
+${extraDeco}
+${leafGroup}
 <g transform="translate(78,48)" filter="url(#ps)">
 <rect x="0" y="0" width="175" height="355" rx="22" fill="${t.phoneBorder}"/>
 <rect x="4" y="4" width="167" height="347" rx="19" fill="${t.screenBg}"/>
@@ -170,10 +216,10 @@ ${t.bgDeco}
 <rect x="10" y="10" width="155" height="330" fill="${t.screenBg}"/>
 ${t.screenDeco}
 <text x="87" y="52" font-family="'Segoe UI',sans-serif" font-size="7" font-weight="600" fill="${t.dateColor}" text-anchor="middle" letter-spacing="2.5">THE WEDDING OF</text>
-<text x="87" y="88" font-family="Georgia,'Times New Roman',serif" font-size="28" font-weight="700" fill="${t.nameColor}" text-anchor="middle">Aditya</text>
+<text x="87" y="88" font-family="Georgia,'Times New Roman',serif" font-size="28" font-weight="700" fill="${t.nameColor}" text-anchor="middle">${groomName}</text>
 <text x="87" y="114" font-family="Georgia,'Times New Roman',serif" font-size="20" font-style="italic" fill="${t.accent}" text-anchor="middle" opacity="0.85">&amp;</text>
-<text x="87" y="144" font-family="Georgia,'Times New Roman',serif" font-size="28" font-weight="700" fill="${t.nameColor}" text-anchor="middle">Aulia</text>
-<text x="87" y="170" font-family="'Segoe UI',sans-serif" font-size="8.5" font-weight="500" fill="${t.dateColor}" text-anchor="middle" letter-spacing="2">27 . 05 . 2026</text>
+<text x="87" y="144" font-family="Georgia,'Times New Roman',serif" font-size="28" font-weight="700" fill="${t.nameColor}" text-anchor="middle">${brideName}</text>
+<text x="87" y="170" font-family="'Segoe UI',sans-serif" font-size="8.5" font-weight="500" fill="${t.dateColor}" text-anchor="middle" letter-spacing="2">${dateStr}</text>
 <rect x="20" y="190" width="135" height="38" rx="10" fill="${t.accentLight}"/>
 <text x="87" y="206" font-family="'Segoe UI',sans-serif" font-size="7" fill="${t.dateColor}" text-anchor="middle">Kepada Yth.</text>
 <text x="87" y="221" font-family="'Segoe UI',sans-serif" font-size="11" font-weight="700" fill="${t.nameColor}" text-anchor="middle">Tamu Terhormat</text>
@@ -185,7 +231,7 @@ ${t.screenDeco}
 <rect x="62" y="6" width="50" height="7" rx="3.5" fill="${t.phoneBorder}" opacity="0.35"/>
 </g>
 <text x="370" y="82" font-family="Georgia,'Times New Roman',serif" font-size="34" font-weight="700" fill="${t.headColor}">${t.line1}</text>
-<text x="370" y="115" font-family="Georgia,'Times New Roman',serif" font-size="24" fill="${t.headColor}" opacity="0.78">${t.line2}</text>
+<text x="370" y="115" font-family="Georgia,'Times New Roman',serif" font-size="24" fill="${t.headColor}" opacity="0.78">${cleanName}</text>
 <line x1="370" y1="137" x2="432" y2="137" stroke="${t.accent}" stroke-width="1" opacity="0.35"/>
 <path d="M 442 134 C 440 130,436 128,436 131 C 436 134,442 138,442 138 C 442 138,448 134,448 131 C 448 128,444 130,442 134 Z" fill="${t.accent}" opacity="0.4"/>
 <line x1="452" y1="137" x2="530" y2="137" stroke="${t.accent}" stroke-width="1" opacity="0.35"/>
@@ -377,7 +423,7 @@ const THEMES: Record<string, MockupTheme> = {
 // Public API
 // ---------------------------------------------------------------------------
 
-export const getTemplateThumbnail = (slug: string, category?: string, price?: number): string => {
+export const getTemplateThumbnail = (slug: string, category?: string, price?: number, name?: string): string => {
   const lowerSlug = (slug || '').toLowerCase();
 
   // Resolve category from slug or explicit category
@@ -435,5 +481,5 @@ export const getTemplateThumbnail = (slug: string, category?: string, price?: nu
   }
 
   const theme = THEMES[themeKey] || THEMES['classic-silver'];
-  return svgToBase64(createMockupSvg(theme));
+  return svgToBase64(createMockupSvg(theme, slug, name));
 };

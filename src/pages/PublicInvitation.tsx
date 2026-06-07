@@ -106,12 +106,21 @@ const MOCK_WISHES = [
   { id: 'w-2', invitation_id: 'preview-inv', guest_name: 'Sarah Amalia', message: 'Happy Wedding! Wishing you a lifetime of love and happiness together.', created_at: new Date(Date.now() - 7200000).toISOString() }
 ];
 
-// Safe Error Boundary to prevent dynamic template runtime render errors from crashing the entire React app
-class SafeErrorBoundary extends React.Component<
-  { children: React.ReactNode; fallback: (error: Error) => React.ReactNode },
-  { hasError: boolean; error: Error | null }
-> {
-  constructor(props: any) {
+interface SafeErrorBoundaryProps {
+  fallback: (error: Error) => React.ReactNode;
+  children: React.ReactNode;
+}
+
+interface SafeErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class SafeErrorBoundary extends React.Component<SafeErrorBoundaryProps, SafeErrorBoundaryState> {
+  props: SafeErrorBoundaryProps;
+  state: SafeErrorBoundaryState;
+
+  constructor(props: SafeErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
   }
@@ -494,11 +503,11 @@ export default function PublicInvitation() {
       
       // Auto-scan code for any used Lucide icons to prevent errors if the AI forgot to write them in imports
       const codeWords = jsxCode.match(/[A-Z][a-zA-Z0-9]+/g) || [];
-      const autoDetectedIcons = Array.from(new Set(codeWords)).filter(word => {
+      const autoDetectedIcons = (Array.from(new Set(codeWords)) as string[]).filter(word => {
         return (Lucide as any)[word] && (typeof (Lucide as any)[word] === 'object' || typeof (Lucide as any)[word] === 'function');
       });
       
-      const uniqueIcons = Array.from(new Set([...lucideImports, ...autoDetectedIcons]));
+      const uniqueIcons = Array.from(new Set([...lucideImports, ...autoDetectedIcons])) as string[];
       
       // Initialize dynamic params with standard icons to ensure backward compatibility
       const defaultIcons = {
