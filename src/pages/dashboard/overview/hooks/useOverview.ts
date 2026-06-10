@@ -72,10 +72,10 @@ export function useOverview() {
 
         const { data: txs } = await supabase
           .from('transactions')
-          .select('status');
+          .select('payment_status');
 
         const totalTransactions = txs?.length || 0;
-        const pendingTransactions = txs?.filter((t: any) => t.status === 'pending').length || 0;
+        const pendingTransactions = txs?.filter((t: any) => t.payment_status === 'pending').length || 0;
 
         setAdminStats({
           totalUsers: usersCount || 0,

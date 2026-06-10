@@ -16,7 +16,7 @@ export default function InvitationEditor() {
   const editor = useInvitationEditor();
   const {
     navigate, editId, user, profile, activePackage, activeStep, setActiveStep, loading, setLoading,
-    fetchingTemplates, templates, setTemplates, selectedTemplate, setSelectedTemplate,
+    fetchingTemplates, setFetchingTemplates, templates, setTemplates, selectedTemplate, setSelectedTemplate,
     selectedReligion, setSelectedReligion, customSlug, setCustomSlug, slugExists,
     checkingSlug, hasRestoredDraft, setHasRestoredDraft, isDataLoaded, setIsDataLoaded,
     mempelai, setMempelai, eventAkad, setEventAkad, eventResepsi, setEventResepsi, giftsList, setGiftsList,
@@ -141,7 +141,7 @@ export default function InvitationEditor() {
 
   // Handle template selection restoration
   useEffect(() => {
-    if (fetchingTemplates || !isDataLoaded) return;
+    if (!isDataLoaded) return;
     templateService.getAll().then(list => {
       const activeTemplates = list.filter(t => t.status === 'active');
       setTemplates(activeTemplates);
@@ -170,8 +170,12 @@ export default function InvitationEditor() {
         } catch(e) {}
       }
       if (restoredTpl) setSelectedTemplate(restoredTpl);
+      setFetchingTemplates(false);
+    }).catch(err => {
+      console.error("Error fetching templates:", err);
+      setFetchingTemplates(false);
     });
-  }, [fetchingTemplates, isDataLoaded]);
+  }, [isDataLoaded]);
 
   // Autosave Draft restored banner helpers
   const handleClearDraft = () => {
