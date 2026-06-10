@@ -6,3 +6,13 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# AI Developer Agent & Scratch Files
+.agents/
+skills-lock.json
+metadata.json
+task.md
+check_lucide.js
+scratch_fetch_template.js
+velvet_code.txt
+scratch/
