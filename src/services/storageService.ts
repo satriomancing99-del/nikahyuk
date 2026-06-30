@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { cloudflareApi } from '../lib/cloudflare-api';
 import { templateService, invitationService, mediaService, transactionService } from './index';
 
 // File Validation Constants
@@ -6,6 +7,8 @@ const ALLOWED_IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'webp'];
 const ALLOWED_AUDIO_EXTS = ['mp3'];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_AUDIO_SIZE = 10 * 1024 * 1024; // 10MB
+
+const USE_D1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
 
 /**
  * Validates a file against allowed extensions and maximum size limits.
@@ -29,6 +32,12 @@ export const storageService = {
    * Helper to retrieve the public URL for a specific object path inside a bucket
    */
   getPublicUrl(bucket: string, path: string): string {
+    if (USE_D1) {
+      // For R2, the public URL is proxy-based or public-domain based.
+      // During upload, the Worker returns the full URL, but if retrieved passively:
+      const apiBase = import.meta.env.VITE_CLOUDFLARE_WORKER_API_URL || "http://localhost:8787";
+      return `${apiBase}/api/media/file/${encodeURIComponent(`${bucket}/${path}`)}`;
+    }
     const { data } = supabase.storage.from(bucket).getPublicUrl(path);
     return data.publicUrl;
   },
@@ -44,6 +53,11 @@ export const storageService = {
     } else {
       // payment-proofs, template-thumbnails, invitation-media are image-based
       validateFile(file, ALLOWED_IMAGE_EXTS, MAX_IMAGE_SIZE);
+    }
+
+    if (USE_D1) {
+      const r2Path = `${bucket}/${path}`;
+      return await cloudflareApi.uploadFile(file, r2Path);
     }
 
     const { error } = await supabase.storage
@@ -65,6 +79,11 @@ export const storageService = {
    * Helper to delete a file from any bucket.
    */
   async deleteFile(bucket: string, path: string): Promise<boolean> {
+    if (USE_D1) {
+      const r2Path = `${bucket}/${path}`;
+      return await cloudflareApi.deleteFile(r2Path);
+    }
+
     const { error } = await supabase.storage.from(bucket).remove([path]);
     if (error) {
       console.error(`Gagal menghapus file ${bucket}/${path}:`, error.message);

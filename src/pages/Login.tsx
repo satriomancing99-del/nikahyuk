@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { user, profile, loading: authLoading, initialized } = useAuthStore();
+  const { user, profile, loading: authLoading, initialized, signIn } = useAuthStore();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -48,14 +48,9 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (signInError) throw signInError;
+      await signIn(email, password);
       
-      // onAuthStateChange in authStore will handle profile fetching. 
+      // onAuthStateChange or signIn in authStore will handle profile fetching. 
       // Manually trigger redirect to dashboard to ensure we don't get stuck in loading
       navigate('/dashboard', { replace: true });
     } catch (err: any) {
@@ -64,7 +59,7 @@ export default function Login() {
       
       if (err.message.includes('Email not confirmed')) {
         errorMsg = 'Email belum dikonfirmasi. Silakan cek email Anda atau nonaktifkan "Confirm Email" di profil Supabase (Authentication > Providers > Email).';
-      } else if (err.message.includes('Invalid login credentials')) {
+      } else if (err.message.includes('Invalid login credentials') || err.message.includes('Email atau password salah')) {
         errorMsg = 'Email atau password salah. Pastikan kredensial benar dan Anda sudah mendaftar.';
       }
       

@@ -1,0 +1,16 @@
+name = "nikah-yuk-api"
+main = "src/index.ts"
+compatibility_date = "2024-04-03"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "dd87186549f34d85ba708298e4ead814"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nikah-yuk"
+database_id = "bbf0ca71-beaf-417f-b6bb-6f49b48f8638"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "nikah-yuk-media"

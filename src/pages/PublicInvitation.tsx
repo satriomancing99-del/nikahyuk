@@ -367,14 +367,22 @@ export default function PublicInvitation() {
 
       try {
         setLoading(true);
-        // Fetch core invitation
-        const { data: inv, error: invErr } = await supabase
-          .from('invitations')
-          .select('*')
-          .eq('slug', invitationSlug)
-          .single();
+        // Fetch core invitation from Cloudflare D1 via Worker API (Try Cloudflare first, fallback to Supabase)
+        let inv: any = null;
+        try {
+          const { cloudflareApi } = await import('../lib/cloudflare-api');
+          inv = await cloudflareApi.getInvitationBySlug(invitationSlug);
+        } catch (e) {
+          console.warn('Could not load invitation from Cloudflare Worker, falling back to Supabase.', e);
+          const { data } = await supabase
+            .from('invitations')
+            .select('*')
+            .eq('slug', invitationSlug)
+            .single();
+          inv = data;
+        }
 
-        if (invErr || !inv) {
+        if (!inv) {
           setErrorText('Mohon maaf, halaman undangan digital tidak ditemukan.');
           setLoading(false);
           return;
@@ -660,15 +668,28 @@ export default function PublicInvitation() {
     try {
       setRsvpSubmitting(true);
 
-      // 1. Submit to rsvps table
-      await supabase.from('rsvps').insert({
-        invitation_id: invitation.id,
-        guest_id: guest?.id || null,
-        guest_name: rsvpForm.name.trim(),
-        attendance_status: rsvpForm.attendance,
-        total_guest: rsvpForm.attendance === 'attending' ? Number(rsvpForm.totalGuests) : 0,
-        message: rsvpForm.message.trim()
-      });
+      // 1. Submit to rsvps table (Try Cloudflare D1 first, fallback to Supabase)
+      try {
+        const { cloudflareApi } = await import('../lib/cloudflare-api');
+        await cloudflareApi.submitRsvp({
+          invitation_id: invitation.id,
+          guest_id: guest?.id || null,
+          guest_name: rsvpForm.name.trim(),
+          attendance_status: rsvpForm.attendance as 'attending' | 'declined',
+          total_guest: rsvpForm.attendance === 'attending' ? Number(rsvpForm.totalGuests) : 0,
+          message: rsvpForm.message.trim()
+        });
+      } catch (e) {
+        console.warn('Could not submit RSVP to Cloudflare Worker, falling back to Supabase.', e);
+        await supabase.from('rsvps').insert({
+          invitation_id: invitation.id,
+          guest_id: guest?.id || null,
+          guest_name: rsvpForm.name.trim(),
+          attendance_status: rsvpForm.attendance,
+          total_guest: rsvpForm.attendance === 'attending' ? Number(rsvpForm.totalGuests) : 0,
+          message: rsvpForm.message.trim()
+        });
+      }
 
       // 2. Update status in guests table if guest metadata matches
       if (guest) {

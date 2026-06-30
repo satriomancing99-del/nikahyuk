@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 
 export default function Register() {
   const navigate = useNavigate();
-  const { user, profile, loading: authLoading, initialized } = useAuthStore();
+  const { user, profile, loading: authLoading, initialized, signUp } = useAuthStore();
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -50,52 +50,18 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // 1. Create user in Supabase Auth
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: name,
-          }
-        }
-      });
-
-      if (signUpError) throw signUpError;
+      await signUp(email, password, name);
       
-      const userId = authData.user?.id;
-      
-      if (!userId) {
-        throw new Error("Gagal mendapatkan ID user setelah pendaftaran.");
-      }
-
-      // 2. Insert into profiles table
-      // Note: Make sure Supabase RLS is configured to allow this insert, 
-      // or preferably use a Database Trigger in Supabase to handle this automatically!
-      const role = email === 'admin@nikahyuk.com' ? 'super_admin' : 'customer';
-      
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: userId,
-          name,
-          email,
-          role: role,
-        });
-        
-      if (profileError) {
-         console.warn("Profile creation error. (If using database triggers, this might be expected to fail with duplicate key or RLS if not configured for client inserts).", profileError);
-         // We might not want to throw the outer error if a trigger already created it.
-      }
-      
-      // Wait a moment for auth state to settle, or redirect to a success page
-      if (!authData.session) {
+      const USE_D1_AUTH = import.meta.env.VITE_USE_D1_AUTH === 'true';
+      if (USE_D1_AUTH) {
+         setError("Registrasi berhasil! Silakan masuk ke akun Anda.");
+         setLoading(false);
+         navigate('/login');
+      } else {
          setError("Pendaftaran berhasil! Silakan cek email Anda untuk konfirmasi sebelum masuk.");
          setLoading(false);
-         return;
       }
-      
-      navigate('/dashboard', { replace: true });
+      return;
 
     } catch (err: any) {
       console.error('Register error:', err.message);

@@ -11,3 +11,6 @@ coverage/
 .agents/
 task.md
 scratch/
+
+# Database Migration Data
+scripts/migration/data/

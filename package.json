@@ -8,12 +8,15 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "dev:worker": "npx wrangler dev -c worker/wrangler.toml",
+    "deploy:worker": "npx wrangler deploy -c worker/wrangler.toml"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "jszip": "^3.10.1",
@@ -26,6 +29,8 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260630.1",
+    "@types/bcryptjs": "^2.4.6",
     "@types/express": "^4.17.21",
     "@types/jszip": "^3.4.0",
     "@types/node": "^22.14.0",
