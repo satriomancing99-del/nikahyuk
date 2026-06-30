@@ -9,6 +9,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import * as Lucide from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { cloudflareApi } from '../lib/cloudflare-api';
 import { Invitation, Event as DBEvent, Gift as DBGift, Media, Wish, Guest } from '../types/database.types';
 
 // Mock data for previewing template designs
@@ -261,11 +262,18 @@ export default function PublicInvitation() {
               if (draft.template?.jsx_code) {
                 setCustomJsxCode(draft.template.jsx_code);
               } else if (activeSlug) {
-                const { data: tpl } = await supabase
-                  .from('templates')
-                  .select('jsx_code')
-                  .eq('slug', activeSlug)
-                  .single();
+                let tpl: any = null;
+                if (import.meta.env.VITE_USE_D1_AUTH === 'true') {
+                  const list = await cloudflareApi.getTableRows<any>('templates', { slug: activeSlug });
+                  if (list && list.length > 0) tpl = list[0];
+                } else {
+                  const { data } = await supabase
+                    .from('templates')
+                    .select('jsx_code')
+                    .eq('slug', activeSlug)
+                    .single();
+                  tpl = data;
+                }
                 if (tpl?.jsx_code) {
                   setCustomJsxCode(tpl.jsx_code);
                 }
@@ -338,11 +346,18 @@ export default function PublicInvitation() {
         } else {
           try {
             // Attempt to fetch from database templates
-            const { data: tpl } = await supabase
-              .from('templates')
-              .select('*')
-              .eq('slug', activeSlug)
-              .single();
+            let tpl: any = null;
+            if (import.meta.env.VITE_USE_D1_AUTH === 'true') {
+              const list = await cloudflareApi.getTableRows<any>('templates', { slug: activeSlug });
+              if (list && list.length > 0) tpl = list[0];
+            } else {
+              const { data } = await supabase
+                .from('templates')
+                .select('*')
+                .eq('slug', activeSlug)
+                .single();
+              tpl = data;
+            }
             if (tpl) {
               detectedCategory = tpl.category;
               if (tpl.jsx_code) {
@@ -350,7 +365,7 @@ export default function PublicInvitation() {
               }
             }
           } catch (e) {
-            console.warn('Could not load template category from Supabase, applying default matching.', e);
+            console.warn('Could not load template category from database, applying default matching.', e);
           }
         }
 
