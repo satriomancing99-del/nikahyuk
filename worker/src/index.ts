@@ -551,6 +551,132 @@ export default {
         return jsonResponse({ success: true, message: "File deleted successfully" }, 200, corsHeaders);
       }
 
+      // Route: GET /api/tables/:tableName (Protected Table Read)
+      const tableMatch = path.match(/^\/api\/tables\/([^/]+)$/);
+      if (method === "GET" && tableMatch) {
+        if (!checkAppSecret(request, env) && !(await getAuthUserId(request, sessionRepo))) {
+          return jsonResponse({ error: "Unauthorized" }, 401, corsHeaders);
+        }
+        const tableName = tableMatch[1];
+        
+        const ALLOWED_TABLES = [
+          'profiles', 'packages', 'templates', 'invitations', 'events', 
+          'guests', 'rsvps', 'wishes', 'gifts', 'media', 
+          'checkins', 'promos', 'transactions', 'music_library', 'system_settings'
+        ];
+        if (!ALLOWED_TABLES.includes(tableName)) {
+          return jsonResponse({ error: "Invalid table name" }, 400, corsHeaders);
+        }
+
+        const id = url.searchParams.get("id");
+        const userId = url.searchParams.get("user_id");
+        const invitationId = url.searchParams.get("invitation_id");
+        const guestCode = url.searchParams.get("guest_code");
+
+        let query = `SELECT * FROM ${tableName}`;
+        const params: any[] = [];
+        const conditions: string[] = [];
+
+        if (id) {
+          conditions.push("id = ?");
+          params.push(id);
+        }
+        if (userId) {
+          conditions.push("user_id = ?");
+          params.push(userId);
+        }
+        if (invitationId) {
+          conditions.push("invitation_id = ?");
+          params.push(invitationId);
+        }
+        if (guestCode) {
+          conditions.push("guest_code = ?");
+          params.push(guestCode);
+        }
+
+        if (conditions.length > 0) {
+          query += ` WHERE ${conditions.join(" AND ")}`;
+        }
+        
+        query += " ORDER BY rowid DESC";
+
+        const { results } = await env.DB.prepare(query).bind(...params).all();
+        return jsonResponse(results, 200, corsHeaders);
+      }
+
+      // Route: POST /api/tables/:tableName (Protected Table Insert)
+      if (method === "POST" && tableMatch) {
+        if (!checkAppSecret(request, env) && !(await getAuthUserId(request, sessionRepo))) {
+          return jsonResponse({ error: "Unauthorized" }, 401, corsHeaders);
+        }
+        const tableName = tableMatch[1];
+        const ALLOWED_TABLES = [
+          'profiles', 'packages', 'templates', 'invitations', 'events', 
+          'guests', 'rsvps', 'wishes', 'gifts', 'media', 
+          'checkins', 'promos', 'transactions', 'music_library', 'system_settings'
+        ];
+        if (!ALLOWED_TABLES.includes(tableName)) {
+          return jsonResponse({ error: "Invalid table name" }, 400, corsHeaders);
+        }
+
+        const body = await request.json<any>();
+        const columns = Object.keys(body);
+        const placeholders = columns.map(() => "?").join(", ");
+        const values = Object.values(body);
+
+        const query = `INSERT INTO ${tableName} (${columns.join(", ")}) VALUES (${placeholders}) RETURNING *`;
+        const result = await env.DB.prepare(query).bind(...values).first();
+        return jsonResponse(result, 201, corsHeaders);
+      }
+
+      // Route: PUT /api/tables/:tableName/:id (Protected Table Update)
+      const tableIdMatch = path.match(/^\/api\/tables\/([^/]+)\/([^/]+)$/);
+      if (method === "PUT" && tableIdMatch) {
+        if (!checkAppSecret(request, env) && !(await getAuthUserId(request, sessionRepo))) {
+          return jsonResponse({ error: "Unauthorized" }, 401, corsHeaders);
+        }
+        const tableName = tableIdMatch[1];
+        const id = tableIdMatch[2];
+        const ALLOWED_TABLES = [
+          'profiles', 'packages', 'templates', 'invitations', 'events', 
+          'guests', 'rsvps', 'wishes', 'gifts', 'media', 
+          'checkins', 'promos', 'transactions', 'music_library', 'system_settings'
+        ];
+        if (!ALLOWED_TABLES.includes(tableName)) {
+          return jsonResponse({ error: "Invalid table name" }, 400, corsHeaders);
+        }
+
+        const body = await request.json<any>();
+        const setClauses = Object.keys(body).map(col => `${col} = ?`).join(", ");
+        const values = Object.values(body);
+        values.push(id);
+
+        const query = `UPDATE ${tableName} SET ${setClauses} WHERE id = ? RETURNING *`;
+        const result = await env.DB.prepare(query).bind(...values).first();
+        return jsonResponse(result, 200, corsHeaders);
+      }
+
+      // Route: DELETE /api/tables/:tableName/:id (Protected Table Delete)
+      if (method === "DELETE" && tableIdMatch) {
+        if (!checkAppSecret(request, env) && !(await getAuthUserId(request, sessionRepo))) {
+          return jsonResponse({ error: "Unauthorized" }, 401, corsHeaders);
+        }
+        const tableName = tableIdMatch[1];
+        const id = tableIdMatch[2];
+        const ALLOWED_TABLES = [
+          'profiles', 'packages', 'templates', 'invitations', 'events', 
+          'guests', 'rsvps', 'wishes', 'gifts', 'media', 
+          'checkins', 'promos', 'transactions', 'music_library', 'system_settings'
+        ];
+        if (!ALLOWED_TABLES.includes(tableName)) {
+          return jsonResponse({ error: "Invalid table name" }, 400, corsHeaders);
+        }
+
+        const query = `DELETE FROM ${tableName} WHERE id = ?`;
+        await env.DB.prepare(query).bind(id).run();
+        return jsonResponse({ success: true, message: "Deleted successfully" }, 200, corsHeaders);
+      }
+
       // Route not matched
       return jsonResponse({ error: "Endpoint tidak ditemukan" }, 404, corsHeaders);
 

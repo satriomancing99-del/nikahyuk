@@ -280,4 +280,114 @@ export const cloudflareApi = {
       return [];
     }
   },
+
+  /**
+   * Generic Fetch rows from any table (Protected Read)
+   */
+  async getTableRows<T>(tableName: string, filter?: Record<string, string>): Promise<T[]> {
+    try {
+      const queryParams = filter ? '?' + new URLSearchParams(filter).toString() : '';
+      const response = await fetchWithTimeout(
+        `${API_BASE_URL}/api/tables/${tableName}${queryParams}`,
+        {
+          method: "GET",
+          headers: this.getHeaders(true),
+          credentials: "include"
+        }
+      );
+      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error(`[Cloudflare API] Failed to fetch table ${tableName}:`, error);
+      return [];
+    }
+  },
+
+  /**
+   * Generic Fetch row by ID from any table (Protected Read)
+   */
+  async getTableRowById<T>(tableName: string, id: string): Promise<T> {
+    try {
+      const response = await fetchWithTimeout(
+        `${API_BASE_URL}/api/tables/${tableName}?id=${id}`,
+        {
+          method: "GET",
+          headers: this.getHeaders(true),
+          credentials: "include"
+        }
+      );
+      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+      const list = await response.json();
+      if (list.length === 0) throw new Error("Row not found");
+      return list[0] as T;
+    } catch (error) {
+      console.error(`[Cloudflare API] Failed to fetch table ${tableName} by ID:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Generic Insert row into any table (Protected Write)
+   */
+  async createTableRow<T>(tableName: string, payload: any): Promise<T> {
+    try {
+      const response = await fetchWithTimeout(
+        `${API_BASE_URL}/api/tables/${tableName}`,
+        {
+          method: "POST",
+          headers: this.getHeaders(true),
+          body: JSON.stringify(payload),
+          credentials: "include"
+        }
+      );
+      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error(`[Cloudflare API] Failed to create in table ${tableName}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Generic Update row in any table (Protected Write)
+   */
+  async updateTableRow<T>(tableName: string, id: string, payload: any): Promise<T> {
+    try {
+      const response = await fetchWithTimeout(
+        `${API_BASE_URL}/api/tables/${tableName}/${id}`,
+        {
+          method: "PUT",
+          headers: this.getHeaders(true),
+          body: JSON.stringify(payload),
+          credentials: "include"
+        }
+      );
+      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error(`[Cloudflare API] Failed to update table ${tableName}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Generic Delete row from any table (Protected Write)
+   */
+  async deleteTableRow(tableName: string, id: string): Promise<boolean> {
+    try {
+      const response = await fetchWithTimeout(
+        `${API_BASE_URL}/api/tables/${tableName}/${id}`,
+        {
+          method: "DELETE",
+          headers: this.getHeaders(true),
+          credentials: "include"
+        }
+      );
+      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+      return true;
+    } catch (error) {
+      console.error(`[Cloudflare API] Failed to delete in table ${tableName}:`, error);
+      return false;
+    }
+  },
 };

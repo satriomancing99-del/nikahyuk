@@ -1,6 +1,9 @@
 import { BaseService } from './baseService';
 import { supabase } from '../lib/supabase';
+import { cloudflareApi } from '../lib/cloudflare-api';
 import * as T from '../types/database.types';
+
+const USE_D1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
 
 // Generic Basic CRUD Services
 export const profileService = new BaseService<T.Profile>('profiles');
@@ -22,6 +25,14 @@ class InvitationService extends BaseService<T.Invitation> {
   }
 
   async getAll() {
+    if (USE_D1) {
+      const list = await cloudflareApi.getTableRows<T.Invitation>(this.tableName);
+      const templates = await cloudflareApi.getTableRows<T.Template>('templates');
+      return list.map(inv => ({
+        ...inv,
+        templates: templates.find(t => t.id === inv.template_id) || null
+      }));
+    }
     const { data, error } = await supabase
       .from(this.tableName)
       .select('*, templates:template_id(*)')
@@ -31,6 +42,14 @@ class InvitationService extends BaseService<T.Invitation> {
   }
 
   async getByUserId(userId: string) {
+    if (USE_D1) {
+      const list = await cloudflareApi.getInvitationsByUserId(userId);
+      const templates = await cloudflareApi.getTableRows<T.Template>('templates');
+      return list.map(inv => ({
+        ...inv,
+        templates: templates.find(t => t.id === inv.template_id) || null
+      }));
+    }
     const { data, error } = await supabase
       .from(this.tableName)
       .select('*, templates:template_id(*)')
@@ -41,6 +60,21 @@ class InvitationService extends BaseService<T.Invitation> {
   }
 
   async getBySlug(slug: string) {
+    if (USE_D1) {
+      const inv = await cloudflareApi.getInvitationBySlug(slug);
+      if (!inv) throw new Error("Undangan tidak ditemukan");
+      
+      const events = await cloudflareApi.getTableRows<T.Event>('events', { invitation_id: inv.id });
+      const gifts = await cloudflareApi.getTableRows<T.Gift>('gifts', { invitation_id: inv.id });
+      const media = await cloudflareApi.getTableRows<T.Media>('media', { invitation_id: inv.id });
+      
+      return {
+        ...inv,
+        events,
+        gifts,
+        media
+      };
+    }
     const { data, error } = await supabase
       .from(this.tableName)
       .select('*, events(*), gifts(*), media(*)')
@@ -58,6 +92,9 @@ class GuestService extends BaseService<T.Guest> {
   }
 
   async getByInvitationId(invitationId: string) {
+    if (USE_D1) {
+      return await cloudflareApi.getGuestsByInvitationId(invitationId);
+    }
     const { data, error } = await supabase
       .from(this.tableName)
       .select('*')
@@ -68,6 +105,11 @@ class GuestService extends BaseService<T.Guest> {
   }
   
   async getByGuestCode(code: string) {
+    if (USE_D1) {
+      const list = await cloudflareApi.getTableRows<T.Guest>(this.tableName, { guest_code: code });
+      if (list.length === 0) throw new Error("Tamu tidak ditemukan");
+      return list[0];
+    }
     const { data, error } = await supabase
       .from(this.tableName)
       .select('*')
@@ -85,6 +127,9 @@ class RsvpService extends BaseService<T.Rsvp> {
   }
   
   async getByInvitationId(invitationId: string) {
+    if (USE_D1) {
+      return await cloudflareApi.getRecentRsvps(invitationId, 1000);
+    }
     const { data, error } = await supabase
       .from(this.tableName)
       .select('*')
