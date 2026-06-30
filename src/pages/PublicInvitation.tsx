@@ -367,19 +367,25 @@ export default function PublicInvitation() {
 
       try {
         setLoading(true);
+        const isD1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
+        const { cloudflareApi } = await import('../lib/cloudflare-api');
+
         // Fetch core invitation from Cloudflare D1 via Worker API (Try Cloudflare first, fallback to Supabase)
         let inv: any = null;
-        try {
-          const { cloudflareApi } = await import('../lib/cloudflare-api');
+        if (isD1) {
           inv = await cloudflareApi.getInvitationBySlug(invitationSlug);
-        } catch (e) {
-          console.warn('Could not load invitation from Cloudflare Worker, falling back to Supabase.', e);
-          const { data } = await supabase
-            .from('invitations')
-            .select('*')
-            .eq('slug', invitationSlug)
-            .single();
-          inv = data;
+        } else {
+          try {
+            inv = await cloudflareApi.getInvitationBySlug(invitationSlug);
+          } catch (e) {
+            console.warn('Could not load invitation from Cloudflare Worker, falling back to Supabase.', e);
+            const { data } = await supabase
+              .from('invitations')
+              .select('*')
+              .eq('slug', invitationSlug)
+              .single();
+            inv = data;
+          }
         }
 
         if (!inv) {
@@ -393,11 +399,17 @@ export default function PublicInvitation() {
         // Fetch associated template to style theme dynamically
         if (inv.template_id) {
           try {
-            const { data: tpl } = await supabase
-              .from('templates')
-              .select('*')
-              .eq('id', inv.template_id)
-              .single();
+            let tpl: any = null;
+            if (isD1) {
+              tpl = await cloudflareApi.getTableRowById<any>('templates', inv.template_id);
+            } else {
+              const { data } = await supabase
+                .from('templates')
+                .select('*')
+                .eq('id', inv.template_id)
+                .single();
+              tpl = data;
+            }
             if (tpl) {
               setTemplateCategory(tpl.category);
               if (tpl.jsx_code) {
@@ -410,17 +422,38 @@ export default function PublicInvitation() {
         }
 
         // Fetch remaining relations in parallel
-        const [eventsRes, giftsRes, mediaRes, wishesRes] = await Promise.all([
-          supabase.from('events').select('*').eq('invitation_id', inv.id).order('date', { ascending: true }),
-          supabase.from('gifts').select('*').eq('invitation_id', inv.id).order('created_at', { ascending: true }),
-          supabase.from('media').select('*').eq('invitation_id', inv.id).order('sort_order', { ascending: true }),
-          supabase.from('wishes').select('*').eq('invitation_id', inv.id).order('created_at', { ascending: false })
-        ]);
+        let dbEvents = [];
+        let dbGifts = [];
+        let dbGallery = [];
+        let dbWishes = [];
 
-        setEvents(eventsRes.data || []);
+        if (isD1) {
+          const [eventsRes, giftsRes, mediaRes, wishesRes] = await Promise.all([
+            cloudflareApi.getTableRows<any>('events', { invitation_id: inv.id }),
+            cloudflareApi.getTableRows<any>('gifts', { invitation_id: inv.id }),
+            cloudflareApi.getTableRows<any>('media', { invitation_id: inv.id }),
+            cloudflareApi.getTableRows<any>('wishes', { invitation_id: inv.id })
+          ]);
+          dbEvents = eventsRes;
+          dbGifts = giftsRes;
+          dbGallery = mediaRes;
+          dbWishes = wishesRes;
+        } else {
+          const [eventsRes, giftsRes, mediaRes, wishesRes] = await Promise.all([
+            supabase.from('events').select('*').eq('invitation_id', inv.id).order('date', { ascending: true }),
+            supabase.from('gifts').select('*').eq('invitation_id', inv.id).order('created_at', { ascending: true }),
+            supabase.from('media').select('*').eq('invitation_id', inv.id).order('sort_order', { ascending: true }),
+            supabase.from('wishes').select('*').eq('invitation_id', inv.id).order('created_at', { ascending: false })
+          ]);
+          dbEvents = eventsRes.data || [];
+          dbGifts = giftsRes.data || [];
+          dbGallery = mediaRes.data || [];
+          dbWishes = wishesRes.data || [];
+        }
+
+        setEvents(dbEvents);
         
         // Filter out empty placeholder gifts dynamically to prevent rendering blank cards
-        const dbGifts = giftsRes.data || [];
         const validDbGifts = dbGifts.filter((g: any) => {
           if (g.type === 'Bank' || g.type === 'E-Wallet') {
             return g.account_number?.trim() && g.account_name?.trim();
@@ -431,29 +464,42 @@ export default function PublicInvitation() {
         });
         setGifts(validDbGifts);
         
-        setGallery(mediaRes.data || []);
-        setWishes(wishesRes.data || []);
+        setGallery(dbGallery);
+        setWishes(dbWishes);
 
         // Load Guest state if guest parameter exists
         if (guestCode) {
-          const { data: gst, error: gstErr } = await supabase
-            .from('guests')
-            .select('*')
-            .eq('invitation_id', inv.id)
-            .eq('guest_code', guestCode)
-            .single();
+          let gst: any = null;
+          if (isD1) {
+            const list = await cloudflareApi.getTableRows<any>('guests', { invitation_id: inv.id, guest_code: guestCode });
+            if (list && list.length > 0) {
+              gst = list[0];
+            }
+          } else {
+            const { data } = await supabase
+              .from('guests')
+              .select('*')
+              .eq('invitation_id', inv.id)
+              .eq('guest_code', guestCode)
+              .single();
+            gst = data;
+          }
 
-          if (gst && !gstErr) {
+          if (gst) {
             setGuest(gst);
             // Pre-fill fields in forms
             setRsvpForm(prev => ({ ...prev, name: gst.name }));
             setWishForm(prev => ({ ...prev, name: gst.name }));
 
             // Logging tracking: set opened_at timestamp in background if not already opened
-            await supabase
-              .from('guests')
-              .update({ opened_at: new Date().toISOString() })
-              .eq('id', gst.id);
+            if (isD1) {
+              await cloudflareApi.updateTableRow('guests', gst.id, { opened_at: new Date().toISOString() });
+            } else {
+              await supabase
+                .from('guests')
+                .update({ opened_at: new Date().toISOString() })
+                .eq('id', gst.id);
+            }
           }
         }
       } catch (err: any) {
@@ -668,9 +714,11 @@ export default function PublicInvitation() {
     try {
       setRsvpSubmitting(true);
 
-      // 1. Submit to rsvps table (Try Cloudflare D1 first, fallback to Supabase)
-      try {
-        const { cloudflareApi } = await import('../lib/cloudflare-api');
+      const isD1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
+      const { cloudflareApi } = await import('../lib/cloudflare-api');
+
+      // 1. Submit to rsvps table
+      if (isD1) {
         await cloudflareApi.submitRsvp({
           invitation_id: invitation.id,
           guest_id: guest?.id || null,
@@ -679,8 +727,7 @@ export default function PublicInvitation() {
           total_guest: rsvpForm.attendance === 'attending' ? Number(rsvpForm.totalGuests) : 0,
           message: rsvpForm.message.trim()
         });
-      } catch (e) {
-        console.warn('Could not submit RSVP to Cloudflare Worker, falling back to Supabase.', e);
+      } else {
         await supabase.from('rsvps').insert({
           invitation_id: invitation.id,
           guest_id: guest?.id || null,
@@ -693,25 +740,40 @@ export default function PublicInvitation() {
 
       // 2. Update status in guests table if guest metadata matches
       if (guest) {
-        await supabase
-          .from('guests')
-          .update({ rsvp_status: rsvpForm.attendance })
-          .eq('id', guest.id);
+        if (isD1) {
+          await cloudflareApi.updateTableRow('guests', guest.id, { rsvp_status: rsvpForm.attendance });
+        } else {
+          await supabase
+            .from('guests')
+            .update({ rsvp_status: rsvpForm.attendance })
+            .eq('id', guest.id);
+        }
       }
 
       // 3. If they wrote a wish, post it to the wishes wall too!
       if (rsvpForm.message.trim()) {
-        const { data: newWish, error: wishErr } = await supabase
-          .from('wishes')
-          .insert({
+        let newWish: any = null;
+        if (isD1) {
+          newWish = await cloudflareApi.createTableRow<any>('wishes', {
             invitation_id: invitation.id,
             guest_name: rsvpForm.name.trim(),
             message: rsvpForm.message.trim()
-          })
-          .select()
-          .single();
+          });
+        } else {
+          const { data, error: wishErr } = await supabase
+            .from('wishes')
+            .insert({
+              invitation_id: invitation.id,
+              guest_name: rsvpForm.name.trim(),
+              message: rsvpForm.message.trim()
+            })
+            .select()
+            .single();
+          if (wishErr) throw wishErr;
+          newWish = data;
+        }
 
-        if (newWish && !wishErr) {
+        if (newWish) {
           setWishes(prev => [newWish, ...prev]);
         }
       }
@@ -738,17 +800,30 @@ export default function PublicInvitation() {
 
     try {
       setWishSubmitting(true);
-      const { data: newWish, error: wishErr } = await supabase
-        .from('wishes')
-        .insert({
+      const isD1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
+      let newWish: any = null;
+      if (isD1) {
+        const { cloudflareApi } = await import('../lib/cloudflare-api');
+        newWish = await cloudflareApi.createTableRow<any>('wishes', {
           invitation_id: invitation.id,
           guest_name: wishForm.name.trim(),
           message: wishForm.message.trim()
-        })
-        .select()
-        .single();
+        });
+      } else {
+        const { data, error } = await supabase
+          .from('wishes')
+          .insert({
+            invitation_id: invitation.id,
+            guest_name: wishForm.name.trim(),
+            message: wishForm.message.trim()
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        newWish = data;
+      }
 
-      if (wishErr || !newWish) throw wishErr;
+      if (!newWish) throw new Error("Gagal menyimpan ucapan");
 
       setWishes(prev => [newWish, ...prev]);
       setWishForm(prev => ({ ...prev, message: '' }));

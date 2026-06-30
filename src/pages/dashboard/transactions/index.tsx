@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { CreditCard, CheckCircle, Clock, AlertCircle, RefreshCw, Plus } from 'lucide-react';
 import { useAuthStore } from '../../../stores/authStore';
-import { supabase } from '../../../lib/supabase';
+import { transactionService, promoService, profileService, invitationService } from '../../../services';
 import { useTransactions } from './hooks/useTransactions';
 import { usePromos } from './hooks/usePromos';
 import { Transaction, Package } from '../../../types/database.types';
@@ -180,19 +180,23 @@ export default function TransactionsManager() {
         const expiredAt = isFree ? new Date() : null;
         if (isFree && expiredAt) expiredAt.setDate(expiredAt.getDate() + activePeriodDays);
 
-        Promise.resolve(supabase.from('transactions').insert({
+        const createTxPayload = {
           user_id: profile?.id, package_id: pkg.id, original_amount: pkg.price, amount: finalAmount, promo_code: promoCodeUsed, discount_amount: discountAmount,
           payment_status: isFree ? 'success' : 'pending', proof_url: '', activated_at: isFree ? new Date().toISOString() : null, expired_at: expiredAt ? expiredAt.toISOString() : null
-        }).select().single()).then(({ data, error }) => {
-          if (error) throw error;
-          if (isEligibleForPromo) supabase.from('promos').update({ usage_count: promosHook.appliedPromo.usage_count + 1 }).eq('id', promosHook.appliedPromo.id).then(() => {});
-          if (isFree && expiredAt) {
-            supabase.from('profiles').update({ active_package_id: pkg.id, package_expired_at: expiredAt.toISOString(), updated_at: new Date().toISOString() }).eq('id', profile?.id).then(() => {});
-            supabase.from('invitations').select('id').eq('user_id', profile?.id).order('created_at', { ascending: false }).limit(1).then(({ data: invs }) => {
-              if (invs && invs.length > 0) supabase.from('invitations').update({ expired_at: expiredAt.toISOString(), updated_at: new Date().toISOString() }).eq('id', invs[0].id).then(() => {});
-            });
+        };
+
+        transactionService.create(createTxPayload).then(async (newTx) => {
+          if (isEligibleForPromo) {
+            await promoService.update(promosHook.appliedPromo.id, { usage_count: promosHook.appliedPromo.usage_count + 1 });
           }
-          setTransactions(prev => [data as Transaction, ...prev]);
+          if (isFree && expiredAt && profile?.id) {
+            await profileService.update(profile.id, { active_package_id: pkg.id, package_expired_at: expiredAt.toISOString(), updated_at: new Date().toISOString() });
+            const invs = await invitationService.getByUserId(profile.id);
+            if (invs && invs.length > 0) {
+              await invitationService.update(invs[0].id, { expired_at: expiredAt.toISOString(), updated_at: new Date().toISOString() });
+            }
+          }
+          setTransactions(prev => [newTx, ...prev]);
           alert(isFree ? `Transaksi Berhasil Aktif!` : `Transaksi Berhasil! Silakan transfer Rp ${finalAmount.toLocaleString('id-ID')} dan upload bukti.`);
           setShowPurchaseModal(false);
           promosHook.setPromoCode('');
@@ -212,12 +216,13 @@ export default function TransactionsManager() {
         setActionLoading(true);
         const activatedAtISO = editingTxActivatedAt ? new Date(editingTxActivatedAt).toISOString() : null;
         const expiredAtISO = editingTxExpiredAt ? new Date(editingTxExpiredAt).toISOString() : null;
-        Promise.resolve(supabase.from('transactions').update({ payment_status: editingTxStatus, amount: Number(editingTxAmount), activated_at: activatedAtISO, expired_at: expiredAtISO }).eq('id', editingTx.id)).then(({ error }) => {
-          if (error) throw error;
+        const updatePayload = { payment_status: editingTxStatus, amount: Number(editingTxAmount), activated_at: activatedAtISO, expired_at: expiredAtISO };
+        transactionService.update(editingTx.id, updatePayload).then(async () => {
           if (editingTxStatus === 'success' && expiredAtISO) {
-            supabase.from('invitations').select('id').eq('user_id', editingTx.user_id).limit(1).then(({ data: invs }) => {
-              if (invs && invs.length > 0) supabase.from('invitations').update({ expired_at: expiredAtISO }).eq('id', invs[0].id).then(() => {});
-            });
+            const invs = await invitationService.getByUserId(editingTx.user_id);
+            if (invs && invs.length > 0) {
+              await invitationService.update(invs[0].id, { expired_at: expiredAtISO });
+            }
           }
           setTransactions(prev => prev.map(t => t.id === editingTx.id ? { ...t, payment_status: editingTxStatus, amount: Number(editingTxAmount), activated_at: activatedAtISO || undefined, expired_at: expiredAtISO || undefined } : t));
           alert('Transaksi diperbarui!');

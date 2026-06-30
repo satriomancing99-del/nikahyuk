@@ -60,14 +60,20 @@ export function useWishes() {
     
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('wishes')
-        .select('*')
-        .eq('invitation_id', selectedInvitation.id)
-        .order('created_at', { ascending: false });
+      if (import.meta.env.VITE_USE_D1_AUTH === 'true') {
+        const { cloudflareApi } = await import('../../../../lib/cloudflare-api');
+        const list = await cloudflareApi.getTableRows<Wish>('wishes', { invitation_id: selectedInvitation.id });
+        setWishes(list || []);
+      } else {
+        const { data, error } = await supabase
+          .from('wishes')
+          .select('*')
+          .eq('invitation_id', selectedInvitation.id)
+          .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setWishes(data || []);
+        if (error) throw error;
+        setWishes(data || []);
+      }
     } catch (err) {
       console.error('Error loading wishes:', err);
     } finally {

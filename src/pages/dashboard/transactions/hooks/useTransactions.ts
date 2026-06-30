@@ -61,12 +61,21 @@ export const useTransactions = () => {
       setPackages(pkgsList);
 
       let txList: Transaction[] = [];
-      if (profile.role === 'super_admin') {
-        const { data } = await supabase.from('transactions').select('*').order('created_at', { ascending: false });
-        txList = (data || []) as Transaction[];
+      if (import.meta.env.VITE_USE_D1_AUTH === 'true') {
+        const { cloudflareApi } = await import('../../../../lib/cloudflare-api');
+        if (profile.role === 'super_admin') {
+          txList = await cloudflareApi.getTableRows<Transaction>('transactions');
+        } else {
+          txList = await cloudflareApi.getTableRows<Transaction>('transactions', { user_id: profile.id });
+        }
       } else {
-        const { data } = await supabase.from('transactions').select('*').eq('user_id', profile.id).order('created_at', { ascending: false });
-        txList = (data || []) as Transaction[];
+        if (profile.role === 'super_admin') {
+          const { data } = await supabase.from('transactions').select('*').order('created_at', { ascending: false });
+          txList = (data || []) as Transaction[];
+        } else {
+          const { data } = await supabase.from('transactions').select('*').eq('user_id', profile.id).order('created_at', { ascending: false });
+          txList = (data || []) as Transaction[];
+        }
       }
       setTransactions(txList);
     } catch (err) {
@@ -95,8 +104,19 @@ export const useTransactions = () => {
     if (!window.confirm('Setujui transaksi ini?')) return;
     try {
       setActionLoading(true);
-      const { data: tx, error: txErr } = await supabase.from('transactions').select('*').eq('id', id).single();
-      if (txErr || !tx) throw new Error('Transaksi tidak ditemukan.');
+      
+      const isD1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
+      const { cloudflareApi } = await import('../../../../lib/cloudflare-api');
+      
+      let tx: Transaction | null = null;
+      if (isD1) {
+        tx = await cloudflareApi.getTableRowById<Transaction>('transactions', id);
+      } else {
+        const { data, error } = await supabase.from('transactions').select('*').eq('id', id).single();
+        if (error) throw error;
+        tx = data;
+      }
+      if (!tx) throw new Error('Transaksi tidak ditemukan.');
 
       const pkg = packages.find(p => p.id === tx.package_id);
       const activePeriodDays = pkg?.active_period || 365;
@@ -104,16 +124,31 @@ export const useTransactions = () => {
       const expiredAt = new Date();
       expiredAt.setDate(expiredAt.getDate() + activePeriodDays);
 
-      const { error: updateErr } = await supabase.from('transactions').update({
-        payment_status: 'success',
-        activated_at: activatedAt.toISOString(),
-        expired_at: expiredAt.toISOString()
-      }).eq('id', id);
-      if (updateErr) throw updateErr;
+      if (isD1) {
+        await cloudflareApi.updateTableRow('transactions', id, {
+          payment_status: 'success',
+          activated_at: activatedAt.toISOString(),
+          expired_at: expiredAt.toISOString()
+        });
 
-      const { data: invs } = await supabase.from('invitations').select('id').eq('user_id', tx.user_id).limit(1);
-      if (invs && invs.length > 0) {
-        await supabase.from('invitations').update({ expired_at: expiredAt.toISOString() }).eq('id', invs[0].id);
+        const invs = await cloudflareApi.getInvitationsByUserId(tx.user_id);
+        if (invs && invs.length > 0) {
+          await cloudflareApi.updateTableRow('invitations', invs[0].id, {
+            expired_at: expiredAt.toISOString()
+          });
+        }
+      } else {
+        const { error: updateErr } = await supabase.from('transactions').update({
+          payment_status: 'success',
+          activated_at: activatedAt.toISOString(),
+          expired_at: expiredAt.toISOString()
+        }).eq('id', id);
+        if (updateErr) throw updateErr;
+
+        const { data: invs } = await supabase.from('invitations').select('id').eq('user_id', tx.user_id).limit(1);
+        if (invs && invs.length > 0) {
+          await supabase.from('invitations').update({ expired_at: expiredAt.toISOString() }).eq('id', invs[0].id);
+        }
       }
 
       setTransactions(prev => prev.map(t => t.id === id ? { ...t, payment_status: 'success', activated_at: activatedAt.toISOString(), expired_at: expiredAt.toISOString() } : t));
@@ -141,12 +176,22 @@ export const useTransactions = () => {
     }
   };
 
+  const handleCopyProofLink = (url: string) => {
+    navigator.clipboard.writeText(url);
+    alert('Tautan bukti transfer disalin!');
+  };
+
   const handleDeleteTransaction = async (id: string) => {
     if (!window.confirm('Hapus transaksi ini permanen?')) return;
     try {
       setActionLoading(true);
-      const { error } = await supabase.from('transactions').delete().eq('id', id);
-      if (error) throw error;
+      if (import.meta.env.VITE_USE_D1_AUTH === 'true') {
+        const { cloudflareApi } = await import('../../../../lib/cloudflare-api');
+        await cloudflareApi.deleteTableRow('transactions', id);
+      } else {
+        const { error } = await supabase.from('transactions').delete().eq('id', id);
+        if (error) throw error;
+      }
       setTransactions(prev => prev.filter(t => t.id !== id));
       alert('Transaksi dihapus.');
     } catch (err: any) {
