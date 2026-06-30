@@ -193,4 +193,91 @@ export const cloudflareApi = {
       return false;
     }
   },
+
+  /**
+   * Fetch invitations for a specific user (Protected Read)
+   */
+  async getInvitationsByUserId(userId: string): Promise<any[]> {
+    if (import.meta.env.DEV) {
+      console.log(`[Cloudflare API] Fetching invitations for user ID: ${userId}`);
+    }
+
+    try {
+      const response = await fetchWithTimeout(
+        `${API_BASE_URL}/api/users/${userId}/invitations`,
+        {
+          method: "GET",
+          headers: this.getHeaders(true),
+          credentials: "include"
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.error("[Cloudflare API] Failed to fetch user invitations:", error.message || error);
+      return [];
+    }
+  },
+
+  /**
+   * Fetch guest list for a specific invitation (Protected Read)
+   */
+  async getGuestsByInvitationId(invitationId: string): Promise<any[]> {
+    if (import.meta.env.DEV) {
+      console.log(`[Cloudflare API] Fetching guests for invitation ID: ${invitationId}`);
+    }
+
+    try {
+      const response = await fetchWithTimeout(
+        `${API_BASE_URL}/api/invitations/${invitationId}/guests`,
+        {
+          method: "GET",
+          headers: this.getHeaders(true),
+          credentials: "include"
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.error("[Cloudflare API] Failed to fetch guests:", error.message || error);
+      return [];
+    }
+  },
+
+  /**
+   * Fetch recent RSVPs for a specific invitation (Protected Read)
+   */
+  async getRecentRsvps(invitationId: string, limit = 6): Promise<any[]> {
+    if (import.meta.env.DEV) {
+      console.log(`[Cloudflare API] Fetching recent RSVPs for invitation ID: ${invitationId} (limit: ${limit})`);
+    }
+
+    try {
+      const response = await fetchWithTimeout(
+        `${API_BASE_URL}/api/invitations/${invitationId}/rsvps?limit=${limit}`,
+        {
+          method: "GET",
+          headers: this.getHeaders(true),
+          credentials: "include"
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.error("[Cloudflare API] Failed to fetch recent RSVPs:", error.message || error);
+      return [];
+    }
+  },
 };

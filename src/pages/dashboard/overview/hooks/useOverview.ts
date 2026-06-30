@@ -4,7 +4,10 @@ import { useAuthStore } from '../../../../stores/authStore';
 import { invitationService, guestService } from '../../../../services';
 import { Invitation, Guest } from '../../../../types/database.types';
 import { supabase } from '../../../../lib/supabase';
+import { cloudflareApi } from '../../../../lib/cloudflare-api';
 import { handleExportExcel as exportExcelFn } from '../utils/exportHelper';
+
+const USE_D1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
 
 export function useOverview() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -31,9 +34,9 @@ export function useOverview() {
       if (!user) return;
       try {
         setLoading(true);
-        const list = profile?.role === 'super_admin'
-          ? await invitationService.getAll()
-          : await invitationService.getByUserId(user.id);
+        const list = USE_D1
+          ? (profile?.role === 'super_admin' ? [] : await cloudflareApi.getInvitationsByUserId(user.id))
+          : (profile?.role === 'super_admin' ? await invitationService.getAll() : await invitationService.getByUserId(user.id));
         setInvitations(list);
 
         const queryId = searchParams.get('invitation');
@@ -95,18 +98,26 @@ export function useOverview() {
   const fetchStats = async () => {
     if (!selectedInvitation) return;
     try {
-      const list = await guestService.getByInvitationId(selectedInvitation.id);
-      setGuests(list);
+      if (USE_D1) {
+        const list = await cloudflareApi.getGuestsByInvitationId(selectedInvitation.id);
+        setGuests(list);
 
-      const { data: rsvps, error } = await supabase
-        .from('rsvps')
-        .select('*')
-        .eq('invitation_id', selectedInvitation.id)
-        .order('created_at', { ascending: false })
-        .limit(6);
-
-      if (!error && rsvps) {
+        const rsvps = await cloudflareApi.getRecentRsvps(selectedInvitation.id, 6);
         setRecentRsvps(rsvps);
+      } else {
+        const list = await guestService.getByInvitationId(selectedInvitation.id);
+        setGuests(list);
+
+        const { data: rsvps, error } = await supabase
+          .from('rsvps')
+          .select('*')
+          .eq('invitation_id', selectedInvitation.id)
+          .order('created_at', { ascending: false })
+          .limit(6);
+
+        if (!error && rsvps) {
+          setRecentRsvps(rsvps);
+        }
       }
     } catch (e) {
       console.error('Error fetching dashboard statistics:', e);

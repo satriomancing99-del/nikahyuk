@@ -421,7 +421,24 @@ export default {
         }
 
         const rsvp = await rsvpRepo.createRsvp(body);
-        return jsonResponse(rsvp, 201, corsHeaders);
+      }
+
+      // Route: GET /api/invitations/:invitationId/rsvps (Protected Read)
+      const rsvpListMatch = path.match(/^\/api\/invitations\/([^/]+)\/rsvps$/);
+      if (method === "GET" && rsvpListMatch) {
+        if (!checkAppSecret(request, env)) {
+          return jsonResponse({ error: "Unauthorized: Invalid or missing X-App-Secret header" }, 401, corsHeaders);
+        }
+        const invitationId = rsvpListMatch[1];
+        const limitStr = url.searchParams.get("limit");
+        const limit = limitStr ? parseInt(limitStr, 10) : undefined;
+
+        let rsvps = await rsvpRepo.listRsvpsByInvitationId(invitationId);
+        if (limit) {
+          rsvps = rsvps.slice(0, limit);
+        }
+
+        return jsonResponse(rsvps, 200, corsHeaders);
       }
 
       // Route: GET /api/test-repositories (Internal test helper, protected)
