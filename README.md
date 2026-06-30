@@ -1,0 +1,67 @@
+# NikahYuk! 💍
+
+NikahYuk! adalah platform pembuatan undangan pernikahan digital yang modern, elegan, dan mudah digunakan. Dengan NikahYuk!, Anda dapat membuat undangan digital premium, mengelola daftar tamu, mengonfirmasi kehadiran (RSVP), hingga mengelola ucapan dan hadiah (E-Gift) secara instan.
+
+## Fitur Utama ✨
+
+- **Tema Undangan Premium**: Berbagai pilihan desain visual (Classic, Rustic, Floral, Modern, Islamic, dan Minimalist) yang responsif dan elegan.
+- **Pengolah Undangan Dinamis**: Ubah nama mempelai, cerita cinta, tanggal acara, galeri foto, hingga musik latar secara langsung.
+- **Sistem RSVP & Buku Tamu**: Tamu dapat mengonfirmasi kehadiran dan mengirimkan doa restu yang akan tampil secara real-time.
+- **E-Gift / Amplop Digital**: Memudahkan tamu memberikan hadiah pernikahan secara cashless dengan fitur salin rekening instan.
+- **Dasbor Manajemen Tamu**: Impor tamu via CSV, buat tautan undangan personal, dan pantau status kehadiran.
+- **Konfirmasi Kehadiran QR Code / Check-in**: Sistem check-in tamu undangan terintegrasi untuk penerimaan tamu yang lebih cepat di lokasi.
+
+## Teknologi 🛠️
+
+Aplikasi ini dibangun menggunakan teknologi modern:
+- **Frontend**: React 19, TypeScript, Vite
+- **Styling**: Tailwind CSS (v4) & Motion (framer-motion) untuk animasi premium
+- **Ikon & Grafis**: Lucide React
+- **Backend & Database**: Supabase (Database Postgres, Auth, Storage)
+
+## Panduan Memulai 🚀
+
+### Prasyarat
+
+Pastikan Anda sudah menginstal:
+- [Node.js](https://nodejs.org/) (versi LTS direkomendasikan)
+- Akun dan proyek [Supabase](https://supabase.com/)
+
+### Langkah Instalasi
+
+1. **Klon repositori ini:**
+   ```bash
+   git clone <url-repositori-anda>
+   cd nikahyuk
+   ```
+
+2. **Instal dependensi:**
+   ```bash
+   npm install
+   ```
+
+3. **Konfigurasi Environment Variables:**
+   Salin file `.env.example` menjadi `.env` dan isi dengan kredensial Supabase Anda:
+   ```bash
+   cp .env.example .env
+   ```
+   *Buka `.env` dan sesuaikan nilainya:*
+   ```env
+   VITE_SUPABASE_URL="YOUR_SUPABASE_URL"
+   VITE_SUPABASE_ANON_KEY="YOUR_SUPABASE_ANON_KEY"
+   ```
+
+4. **Jalankan aplikasi di lingkungan pengembangan:**
+   ```bash
+   npm run dev
+   ```
+   Aplikasi akan berjalan di `http://localhost:3005`.
+
+5. **Membangun untuk Produksi:**
+   ```bash
+   npm run build
+   ```
+
+## Lisensi 📄
+
+Proyek ini dilisensikan di bawah [MIT License](LICENSE).

@@ -1,0 +1,6 @@
+{
+  "name": "NikahYuk!",
+  "description": "Buat undangan digital, kelola tamu, dan kirim undangan lebih mudah.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

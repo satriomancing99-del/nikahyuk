@@ -1,0 +1,384 @@
+import { useState, useEffect } from 'react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
+import { supabase } from '../lib/supabase';
+import { 
+  Heart, 
+  LayoutDashboard, 
+  Palette, 
+  Mail, 
+  Users, 
+  MessageSquareHeart, 
+  Menu,
+  X,
+  UserCircle,
+  LogOut,
+  Bell,
+  Search,
+  ScanLine,
+  CreditCard,
+  Settings,
+  AlertCircle
+} from 'lucide-react';
+
+const MENU_ITEMS = [
+  { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['super_admin', 'customer'] },
+  { name: 'Kolaborasi Desain', icon: Palette, path: '/dashboard/templates', roles: ['super_admin', 'customer'] },
+  { name: 'Undangan', icon: Mail, path: '/dashboard/invitations', roles: ['super_admin', 'customer'] },
+  { name: 'Tamu', icon: Users, path: '/dashboard/guests', roles: ['super_admin', 'customer'] },
+  { name: 'RSVP', icon: MessageSquareHeart, path: '/dashboard/rsvp', roles: ['super_admin', 'customer'] },
+  { name: 'Ucapan', icon: MessageSquareHeart, path: '/dashboard/wishes', roles: ['super_admin', 'customer'] },
+  { name: 'Transaksi', icon: CreditCard, path: '/dashboard/transactions', roles: ['super_admin', 'customer'] },
+  { name: 'Pengaturan', icon: Settings, path: '/dashboard/settings', roles: ['super_admin', 'customer'] },
+];
+
+export default function DashboardLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [hasPaid, setHasPaid] = useState<boolean | null>(null);
+  const [donationModalOpen, setDonationModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpenModal = () => setDonationModalOpen(true);
+    window.addEventListener('open-donation-modal', handleOpenModal);
+    return () => {
+      window.removeEventListener('open-donation-modal', handleOpenModal);
+    };
+  }, []);
+  
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { profile, signOut } = useAuthStore();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
+
+  // Check if customer has at least one successful transaction purchase
+  useEffect(() => {
+    async function checkPurchase() {
+      if (!profile || profile.role !== 'customer') {
+        setHasPaid(true);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('id')
+          .eq('user_id', profile.id)
+          .eq('payment_status', 'success')
+          .limit(1);
+
+        if (!error && data && data.length > 0) {
+          setHasPaid(true);
+        } else {
+          setHasPaid(false);
+        }
+      } catch (err) {
+        console.error('Error checking active package:', err);
+        setHasPaid(true); // default fallback to prevent annoying banner on database failure
+      }
+    }
+    checkPurchase();
+  }, [profile, location.pathname]); // Re-verify on navigation to update state in real time
+
+
+  const [collaborationEnabled, setCollaborationEnabled] = useState(false);
+
+  // Fetch collaboration setting from system_settings
+  useEffect(() => {
+    async function fetchCollaborationSetting() {
+      try {
+        const { data, error } = await supabase
+          .from('system_settings')
+          .select('value')
+          .eq('key', 'collaboration_enabled')
+          .single();
+        if (!error && data) {
+          const valObj = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+          setCollaborationEnabled(!!valObj?.enabled);
+        }
+      } catch (err) {
+        console.error('Error fetching collaboration setting:', err);
+        // Graceful fallback to false for safety
+        setCollaborationEnabled(false);
+      }
+    }
+    fetchCollaborationSetting();
+  }, [location.pathname]);
+
+  // Filter menu items based on user role and collaboration settings
+  const filteredNavItems = MENU_ITEMS.filter(item => {
+    if (!profile) return false;
+    if (item.path === '/dashboard/templates') {
+      return profile.role === 'super_admin' || (profile.role === 'customer' && collaborationEnabled);
+    }
+    return item.roles.includes(profile.role);
+  });
+
+  // Verify access for current route based on MENU_ITEMS, user role and settings
+  useEffect(() => {
+    if (profile) {
+      const currentPath = location.pathname;
+      const activeMenuItem = MENU_ITEMS.find(item => 
+        currentPath === item.path || (currentPath.startsWith(item.path) && item.path !== '/dashboard')
+      );
+
+      if (activeMenuItem) {
+        if (activeMenuItem.path === '/dashboard/templates') {
+          const isAllowed = profile.role === 'super_admin' || (profile.role === 'customer' && collaborationEnabled);
+          if (!isAllowed) {
+            navigate('/dashboard', { replace: true });
+          }
+        } else if (!activeMenuItem.roles.includes(profile.role)) {
+          // User does not have the required role for this route
+          navigate('/dashboard', { replace: true });
+        }
+      }
+    }
+  }, [location.pathname, profile, navigate, collaborationEnabled]);
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Mobile sidebar backdrop */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 z-20 bg-gray-900/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-30 w-72 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <div className="h-16 flex items-center px-6 border-b border-gray-200">
+          <Link to="/dashboard" className="flex items-center gap-2">
+            <Heart className="w-6 h-6 text-primary-500" fill="currentColor" />
+            <span className="text-xl font-bold text-gray-900 tracking-tight">NikahYuk!</span>
+          </Link>
+          <button 
+            className="ml-auto lg:hidden text-gray-500 hover:text-gray-700"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <nav className="p-4 space-y-1 h-[calc(100vh-4rem)] overflow-y-auto flex flex-col justify-between">
+          <div className="space-y-1">
+            {filteredNavItems.map((item) => {
+               const isActive = location.pathname === item.path || (location.pathname.startsWith(item.path) && item.path !== '/dashboard');
+               return (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive 
+                      ? 'bg-primary-50 text-primary-700' 
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
+                  <item.icon className={`w-5 h-5 ${isActive ? 'text-primary-500' : 'text-gray-400'}`} />
+                  {item.name}
+                </Link>
+              )
+            })}
+          </div>
+
+          {/* Card Donasi Traktir Kopi Admin */}
+          {profile?.role === 'customer' && (
+            <div className="mt-8 p-4 bg-gradient-to-br from-pink-50 to-rose-50/60 rounded-2xl border border-pink-100/80 shadow-xs relative overflow-hidden group">
+              <div className="absolute -right-3 -bottom-3 w-12 h-12 rounded-full bg-pink-100/50 blur-xl group-hover:scale-125 transition-transform duration-500" />
+              
+              <div className="relative z-10 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-base animate-pulse">☕</span>
+                  <span className="text-[10px] font-bold text-gray-800 uppercase tracking-wider">Traktir Kopi Admin</span>
+                </div>
+                <p className="text-[10.5px] text-gray-500 leading-normal">
+                  Suka dengan <b>nikahyuk!</b>? Yuk dukung biaya sewa server agar platform tetap aktif membantu kustomer secara gratis!
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('open-donation-modal'));
+                  }}
+                  className="w-full py-1.5 px-3 bg-pink-600 hover:bg-pink-700 active:scale-95 transition-all text-white font-bold text-[10px] rounded-xl flex items-center justify-center gap-1.5 shadow-sm shadow-pink-500/10 cursor-pointer select-none"
+                >
+                  <ScanLine className="w-3.5 h-3.5" /> Donasi QRIS Instan
+                </button>
+              </div>
+            </div>
+          )}
+        </nav>
+      </aside>
+
+      {/* Main Content Info */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Topbar */}
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-10 shrink-0">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 -ml-2 text-gray-500 hover:text-gray-700 rounded-md"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+
+            <div className="hidden sm:flex max-w-sm w-full lg:max-w-xs relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                className="block w-full bg-gray-50 border border-gray-200 rounded-full py-1.5 pl-9 pr-3 text-sm placeholder-gray-500 focus:outline-none focus:text-gray-900 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm transition-shadow"
+                placeholder="Cari sesuatu..."
+                type="search"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button className="p-2 text-gray-400 hover:text-gray-500 relative transition-colors">
+              <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white" />
+              <Bell className="w-5 h-5" />
+            </button>
+            <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
+            <div className="flex items-center gap-3 relative">
+               <div className="hidden sm:flex flex-col items-end">
+                  <span className="text-sm font-medium text-gray-900">{profile?.name || 'User'}</span>
+                  <span className="text-xs text-gray-500 capitalize">{profile?.role?.replace('_', ' ')}</span>
+               </div>
+               <button 
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex bg-white rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+               >
+                  <UserCircle className="w-8 h-8 text-gray-400" />
+               </button>
+
+               {dropdownOpen && (
+                 <>
+                   <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)}></div>
+                   <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-lg border border-gray-100 p-2 z-20">
+                     <button 
+                       onClick={handleLogout}
+                       className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                     >
+                       <LogOut className="w-4 h-4" />
+                       Keluar
+                     </button>
+                   </div>
+                 </>
+               )}
+            </div>
+          </div>
+        </header>
+
+        {/* Dashboard Content */}
+        <main className="flex-1 relative overflow-y-auto focus:outline-none p-4 sm:p-6 lg:p-8 space-y-6">
+          {hasPaid === false && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in slide-in-from-top duration-300">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-amber-900 text-sm">Akun Anda Belum Memiliki Paket Aktif</h4>
+                  <p className="text-xs text-amber-800 leading-normal mt-0.5">
+                    Silakan lakukan pembelian paket layanan untuk menghilangkan batasan kuota tamu/foto, mengaktifkan fitur premium, dan menerbitkan undangan Anda secara publik.
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => navigate('/dashboard/transactions')}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-md transition whitespace-nowrap self-stretch sm:self-auto flex items-center justify-center"
+              >
+                Aktifkan Paket Sekarang
+              </button>
+            </div>
+          )}
+          <Outlet />
+        </main>
+
+        {/* Floating WhatsApp Support Button for Customer */}
+        {profile?.role === 'customer' && (
+          <a
+            href="https://wa.me/6287701672479?text=Halo%20Admin%20NikahYuk!,%20saya%20butuh%20bantuan%20terkait%20dashboard%20undangan%20saya..."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="fixed bottom-6 right-6 z-50 group flex items-center gap-2 bg-[#25D366] hover:bg-[#20ba5a] text-white p-3.5 sm:p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-emerald-500/30 active:scale-95 cursor-pointer"
+            title="Butuh bantuan? Hubungi Admin"
+          >
+            {/* Floating text revealed on hover */}
+            <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 ease-in-out whitespace-nowrap text-sm font-semibold pr-0 group-hover:pr-2">
+              Butuh Bantuan?
+            </span>
+            {/* Clean WhatsApp SVG */}
+            <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984a9.96 9.96 0 0 0 1.335 4.963L2 22l5.233-1.372a9.912 9.912 0 0 0 4.779 1.229h.004c5.505 0 9.988-4.479 9.989-9.985-.001-2.668-1.039-5.176-2.927-7.066A9.925 9.925 0 0 0 12.012 2zm5.835 14.129c-.32.9-1.845 1.748-2.54 1.806-.595.051-1.37.088-2.228-.188a10.05 10.05 0 0 1-5.187-3.218 10.024 10.024 0 0 1-2.148-3.905c-.32-.916.059-1.579.432-1.921.284-.26.592-.303.789-.303.197 0 .394.002.559.01.176.008.411-.064.642.492.239.578.814 1.99.884 2.135.07.145.118.314.021.507-.096.194-.145.314-.29.483-.145.17-.306.379-.437.507-.145.142-.297.297-.127.59.17.291.751 1.238 1.61 2.003.111.099.986.772 1.688 1.018.257.09.497.096.685-.084.188-.182.812-.942 1.03-1.266.218-.323.437-.27.728-.162.29.109 1.845.87 2.162 1.029.317.159.528.239.605.372.078.134.078.777-.242 1.677z" />
+            </svg>
+          </a>
+        )}
+      </div>
+
+      {/* Global Donation Modal */}
+      {donationModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-gray-100 flex flex-col items-center text-center space-y-4 animate-in zoom-in-95 duration-300 relative overflow-hidden my-8">
+            {/* Top decorative pink bar */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-pink-500 via-rose-500 to-primary-500" />
+            
+            {/* Heart and Coffee Pulse visual */}
+            <div className="relative mt-2">
+              <div className="w-16 h-16 rounded-full bg-pink-50 flex items-center justify-center animate-pulse text-3xl">
+                ☕
+              </div>
+              <span className="absolute -top-1 -right-1 text-base animate-bounce">❤️</span>
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-extrabold text-gray-900 tracking-tight">Dukung Server nikahyuk!</h3>
+              <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Donasi Sukarela Untuk Admin</p>
+            </div>
+
+            <p className="text-[11.5px] text-gray-500 leading-relaxed px-1">
+              Hai Kak! Terima kasih banyak telah menggunakan layanan kami. Platform ini dikelola secara mandiri oleh admin agar tetap gratis & terjangkau bagi semua kalangan.
+            </p>
+            
+            <p className="text-[11px] text-pink-700 bg-pink-50/70 border border-pink-100 rounded-2xl p-3 leading-relaxed">
+              Kebaikan kecil Kakak sangat berarti untuk kelangsungan biaya sewa server platform kami. Berapapun donasi Kakak, admin doakan semoga pernikahan Kakak berdua penuh berkah, sakinah, mawaddah, warahmah. Aamiin! 🌸
+            </p>
+
+            {/* QRIS Code Image Frame */}
+            <div className="bg-gray-50 p-3 rounded-2xl border border-gray-150 shadow-inner w-full flex flex-col items-center space-y-2">
+              <div className="bg-white p-2 rounded-xl border border-gray-200 overflow-hidden w-full max-w-[210px] aspect-square flex items-center justify-center">
+                <img 
+                  src="/qris.png" 
+                  alt="QRIS Donasi Admin NikahYuk" 
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div className="text-[10px] text-gray-400 font-mono text-center font-bold">
+                NMID: ID1026486428935 | Merchant: M-nox
+              </div>
+            </div>
+
+            <p className="text-[9.5px] text-gray-400 leading-normal max-w-[280px]">
+              Silakan pindai barcode QRIS di atas menggunakan GoPay, OVO, Dana, ShopeePay, LinkAja, atau aplikasi m-Banking Anda.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setDonationModalOpen(false)}
+              className="w-full py-2.5 px-4 bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95 cursor-pointer select-none"
+            >
+              Tutup & Lanjutkan
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
