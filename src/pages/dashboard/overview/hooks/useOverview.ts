@@ -65,27 +65,40 @@ export function useOverview() {
     async function loadAdminStats() {
       try {
         setLoadingAdminStats(true);
-        const { count: usersCount } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true });
+        if (USE_D1) {
+          const profiles = await cloudflareApi.getTableRows<any>('profiles');
+          const invitationsList = await cloudflareApi.getTableRows<any>('invitations');
+          const txs = await cloudflareApi.getTableRows<any>('transactions');
 
-        const { count: invsCount } = await supabase
-          .from('invitations')
-          .select('*', { count: 'exact', head: true });
+          setAdminStats({
+            totalUsers: profiles.length,
+            totalInvitations: invitationsList.length,
+            totalTransactions: txs.length,
+            pendingTransactions: txs.filter((t: any) => t.payment_status === 'pending').length
+          });
+        } else {
+          const { count: usersCount } = await supabase
+            .from('profiles')
+            .select('*', { count: 'exact', head: true });
 
-        const { data: txs } = await supabase
-          .from('transactions')
-          .select('payment_status');
+          const { count: invsCount } = await supabase
+            .from('invitations')
+            .select('*', { count: 'exact', head: true });
 
-        const totalTransactions = txs?.length || 0;
-        const pendingTransactions = txs?.filter((t: any) => t.payment_status === 'pending').length || 0;
+          const { data: txs } = await supabase
+            .from('transactions')
+            .select('payment_status');
 
-        setAdminStats({
-          totalUsers: usersCount || 0,
-          totalInvitations: invsCount || 0,
-          totalTransactions,
-          pendingTransactions
-        });
+          const totalTransactions = txs?.length || 0;
+          const pendingTransactions = txs?.filter((t: any) => t.payment_status === 'pending').length || 0;
+
+          setAdminStats({
+            totalUsers: usersCount || 0,
+            totalInvitations: invsCount || 0,
+            totalTransactions,
+            pendingTransactions
+          });
+        }
       } catch (err) {
         console.error('Error loading admin stats:', err);
       } finally {

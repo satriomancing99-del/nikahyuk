@@ -55,14 +55,23 @@ export const useGuests = () => {
       setGuests(list);
 
       let price = 0;
-      const { data, error } = await supabase
-        .from('templates')
-        .select('price')
-        .eq('id', selectedInvitation.template_id)
-        .single();
-      
-      if (!error && data) {
-        price = Number(data.price);
+      const isD1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
+      if (isD1) {
+        const { templateService } = await import('../../../../services');
+        const tpl = await templateService.getById(selectedInvitation.template_id);
+        if (tpl) {
+          price = Number(tpl.price);
+        }
+      } else {
+        const { data, error } = await supabase
+          .from('templates')
+          .select('price')
+          .eq('id', selectedInvitation.template_id)
+          .single();
+        
+        if (!error && data) {
+          price = Number(data.price);
+        }
       }
 
       let tier: 'silver' | 'gold' | 'platinum' = 'silver';
