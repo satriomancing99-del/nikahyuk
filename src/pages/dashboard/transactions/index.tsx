@@ -180,7 +180,7 @@ export default function TransactionsManager() {
         const finalAmount = isEligibleForPromo ? promosHook.getDiscountedPrice(pkg.price) : pkg.price;
         const promoCodeUsed = isEligibleForPromo ? promosHook.appliedPromo.code : null;
         
-        const isFree = finalAmount === 0;
+        const isFree = finalAmount === 0 || isEligibleForPromo;
         const activePeriodDays = pkg.active_period || 365;
         const expiredAt = isFree ? new Date() : null;
         if (isFree && expiredAt) expiredAt.setDate(expiredAt.getDate() + activePeriodDays);

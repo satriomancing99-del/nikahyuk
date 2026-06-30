@@ -37,7 +37,7 @@ function getCorsHeaders(request: Request): Record<string, string> {
   if (isAllowed) {
     return {
       "Access-Control-Allow-Origin": origin,
-      "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, HEAD, POST, PUT, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization, X-App-Secret, Cookie",
       "Access-Control-Allow-Credentials": "true",
     };
@@ -46,7 +46,7 @@ function getCorsHeaders(request: Request): Record<string, string> {
   // Fallback default
   return {
     "Access-Control-Allow-Origin": "https://nikah-yuk.com",
-    "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, HEAD, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, X-App-Secret, Cookie",
   };
 }
@@ -89,7 +89,7 @@ function getCookie(request: Request, name: string): string | null {
 
 // Helper to construct Set-Cookie header
 function getCookieHeader(name: string, value: string, expires?: Date): string {
-  let cookie = `${name}=${value}; HttpOnly; Secure; SameSite=Lax; Path=/`;
+  let cookie = `${name}=${value}; HttpOnly; Secure; SameSite=None; Path=/`;
   if (expires) {
     cookie += `; Expires=${expires.toUTCString()}`;
   } else if (value === "") {
@@ -620,6 +620,9 @@ export default {
         }
 
         const body = await request.json<any>();
+        if (!body.id) {
+          body.id = crypto.randomUUID();
+        }
         const columns = Object.keys(body);
         const placeholders = columns.map(() => "?").join(", ");
         const values = Object.values(body);
