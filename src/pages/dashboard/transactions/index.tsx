@@ -114,6 +114,11 @@ export default function TransactionsManager() {
               <Plus className="w-4 h-4" /> Beli Paket Baru
             </button>
           )}
+          {profile?.role === 'super_admin' && adminActiveTab === 'promos' && (
+            <button onClick={() => promosHook.setShowPromoModal(true)} className="bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-1.5 shadow-md shadow-primary-50">
+              <Plus className="w-4 h-4" /> Tambah Kode Promo
+            </button>
+          )}
           <button onClick={loadData} className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh Riwayat
           </button>
