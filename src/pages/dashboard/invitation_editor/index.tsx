@@ -298,6 +298,45 @@ export default function InvitationEditor() {
 
       let invitationId = editId;
       if (editId) {
+        // R2 Cleanup Logic
+        try {
+          const { deleteR2FileByUrl } = await import('../../../utils/r2Cleanup');
+          const oldMedia = await mediaService.getAll({ invitation_id: editId });
+          const oldInv = await invitationService.getById(editId);
+
+          // 1. Clean up WA Thumbnail
+          if (waThumbnail && oldInv?.thumbnail_url) {
+            await deleteR2FileByUrl(oldInv.thumbnail_url);
+          }
+
+          // 2. Clean up Groom Photo
+          const oldGroomUrl = oldMedia.find(m => m.caption === 'groom_photo')?.url;
+          if ((groomPhotoFile || !groomPhotoPreview) && oldGroomUrl) {
+            await deleteR2FileByUrl(oldGroomUrl);
+          }
+
+          // 3. Clean up Bride Photo
+          const oldBrideUrl = oldMedia.find(m => m.caption === 'bride_photo')?.url;
+          if ((bridePhotoFile || !bridePhotoPreview) && oldBrideUrl) {
+            await deleteR2FileByUrl(oldBrideUrl);
+          }
+
+          // 4. Clean up Gallery Images
+          const keptGalleryUrls = new Set(
+            galleryItems
+              .map(item => item.preview)
+              .filter(url => url && !url.startsWith('data:image'))
+          );
+          const oldGalleryItems = oldMedia.filter(m => m.caption !== 'groom_photo' && m.caption !== 'bride_photo');
+          for (const oldItem of oldGalleryItems) {
+            if (oldItem.url && !keptGalleryUrls.has(oldItem.url)) {
+              await deleteR2FileByUrl(oldItem.url);
+            }
+          }
+        } catch (cleanupErr) {
+          console.error('Failed to run R2 cleanup:', cleanupErr);
+        }
+
         await invitationService.update(editId, payload);
         await eventService.deleteMany({ invitation_id: editId });
         await giftService.deleteMany({ invitation_id: editId });

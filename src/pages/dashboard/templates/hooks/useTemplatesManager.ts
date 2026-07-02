@@ -137,7 +137,7 @@ export const useTemplatesManager = () => {
     }
   };
 
-  const saveDraftToDatabase = async (draftTemplate: Partial<Template>) => {
+  const saveDraftToDatabase = async (draftTemplate: Partial<Template>, thumbnailFile?: File | null) => {
     if (!draftTemplate || !draftTemplate.name) return;
     try {
       setSaving(true);
@@ -146,12 +146,20 @@ export const useTemplatesManager = () => {
       let finalSlug = draftTemplate.slug || 'template-slug';
       finalSlug = finalSlug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
+      let finalThumbnailUrl = draftTemplate.thumbnail_url || '';
+      if (thumbnailFile) {
+        const fileExt = thumbnailFile.name.split('.').pop()?.toLowerCase() || 'png';
+        const filePath = `templates/${finalSlug}/thumbnail_${Date.now()}.${fileExt}`;
+        const { storageService } = await import('../../../../services');
+        finalThumbnailUrl = await storageService.uploadFile(thumbnailFile, 'template-thumbnails', filePath);
+      }
+
       const payload: any = {
         name: draftTemplate.name,
         slug: finalSlug,
         category: draftTemplate.category || 'Classic',
         price: draftTemplate.price || 150000,
-        thumbnail_url: draftTemplate.thumbnail_url || '',
+        thumbnail_url: finalThumbnailUrl,
         preview_url: draftTemplate.preview_url || `/preview/${finalSlug}`,
         status: profile?.role === 'customer' ? 'draft' : (draftTemplate.status || 'active'),
         jsx_code: draftTemplate.jsx_code || null

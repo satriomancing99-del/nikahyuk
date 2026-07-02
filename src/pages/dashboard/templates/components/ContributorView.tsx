@@ -146,7 +146,7 @@ export const ContributorView: React.FC<ContributorViewProps> = ({
                   >
                     <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
                       <img
-                        src={getTemplateThumbnail(tpl.slug, tpl.category, tpl.price, tpl.name) || getTemplateThumbnail('classic-silver')}
+                        src={tpl.thumbnail_url || getTemplateThumbnail(tpl.slug, tpl.category, tpl.price, tpl.name) || getTemplateThumbnail('classic-silver')}
                         alt={tpl.name}
                         className="w-full h-full object-cover"
                       />

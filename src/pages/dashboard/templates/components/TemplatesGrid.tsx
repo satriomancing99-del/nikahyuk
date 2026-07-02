@@ -41,7 +41,7 @@ export const TemplatesGrid: React.FC<TemplatesGridProps> = ({
             title="Klik untuk Pratinjau (Preview)"
           >
             <img
-              src={getTemplateThumbnail(tpl.slug, tpl.category, tpl.price, tpl.name) || getTemplateThumbnail('classic-silver')}
+              src={tpl.thumbnail_url || getTemplateThumbnail(tpl.slug, tpl.category, tpl.price, tpl.name) || getTemplateThumbnail('classic-silver')}
               alt={tpl.name}
               className="w-full h-full object-cover group-hover/img:scale-105 transition duration-500"
             />

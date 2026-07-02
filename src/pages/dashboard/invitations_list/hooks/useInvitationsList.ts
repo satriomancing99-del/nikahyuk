@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../../../stores/authStore';
-import { invitationService } from '../../../../services';
+import { invitationService, mediaService } from '../../../../services';
 import { Invitation } from '../../../../types/database.types';
+import { deleteR2FileByUrl } from '../../../../utils/r2Cleanup';
 
 export function useInvitationsList() {
   const navigate = useNavigate();
@@ -63,6 +64,23 @@ export function useInvitationsList() {
       return;
     }
     try {
+      // 1. Fetch invitation details to get WA sharing thumbnail_url
+      const targetInv = invitations.find(inv => inv.id === id);
+      if (targetInv && targetInv.thumbnail_url) {
+        await deleteR2FileByUrl(targetInv.thumbnail_url);
+      }
+
+      // 2. Fetch and delete all media files associated with the invitation
+      const mediaList = await mediaService.getAll({ invitation_id: id });
+      if (mediaList && mediaList.length > 0) {
+        for (const item of mediaList) {
+          if (item.url) {
+            await deleteR2FileByUrl(item.url);
+          }
+        }
+      }
+
+      // 3. Delete from database
       await invitationService.delete(id);
       setInvitations(prev => prev.filter(inv => inv.id !== id));
       alert('Undangan berhasil dihapus.');

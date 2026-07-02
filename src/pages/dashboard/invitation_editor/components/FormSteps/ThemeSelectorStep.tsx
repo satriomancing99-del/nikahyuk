@@ -99,7 +99,7 @@ export const ThemeSelectorStep: React.FC<ThemeSelectorStepProps> = ({
             >
               <div className="aspect-[4/3] bg-gray-100 overflow-hidden relative">
                 <img 
-                  src={getTemplateThumbnail(tpl.slug, tpl.category, tpl.price) || getTemplateThumbnail('classic-silver')} 
+                  src={tpl.thumbnail_url || getTemplateThumbnail(tpl.slug, tpl.category, tpl.price) || getTemplateThumbnail('classic-silver')} 
                   alt={tpl.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                   referrerPolicy="no-referrer"

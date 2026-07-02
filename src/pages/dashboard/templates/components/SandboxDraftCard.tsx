@@ -151,7 +151,7 @@ export const SandboxDraftCard: React.FC<SandboxDraftCardProps> = ({
                 title="Klik untuk Pratinjau (Preview)"
               >
                 <img
-                  src={getTemplateThumbnail(draftTemplate.slug || '', draftTemplate.category, draftTemplate.price, draftTemplate.name) || getTemplateThumbnail('classic-silver')}
+                  src={draftTemplate.thumbnail_url || getTemplateThumbnail(draftTemplate.slug || '', draftTemplate.category, draftTemplate.price, draftTemplate.name) || getTemplateThumbnail('classic-silver')}
                   alt="Template Preview Sketch"
                   className="w-full h-full object-cover group-hover/img:scale-105 transition duration-500"
                 />

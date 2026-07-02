@@ -25,7 +25,7 @@ export default function TemplatesManager() {
 
   const handleSaveDraft = async () => {
     if (upload.draftTemplate) {
-      const success = await manager.saveDraftToDatabase(upload.draftTemplate);
+      const success = await manager.saveDraftToDatabase(upload.draftTemplate, upload.selectedDraftThumbnailFile);
       if (success) {
         upload.clearDraft();
       }
