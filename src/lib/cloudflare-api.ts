@@ -340,7 +340,10 @@ export const cloudflareApi = {
           credentials: "include"
         }
       );
-      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || errData.error || `HTTP Error: ${response.status}`);
+      }
       return await response.json();
     } catch (error) {
       console.error(`[Cloudflare API] Failed to create in table ${tableName}:`, error);
@@ -362,7 +365,10 @@ export const cloudflareApi = {
           credentials: "include"
         }
       );
-      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || errData.error || `HTTP Error: ${response.status}`);
+      }
       return await response.json();
     } catch (error) {
       console.error(`[Cloudflare API] Failed to update table ${tableName}:`, error);
