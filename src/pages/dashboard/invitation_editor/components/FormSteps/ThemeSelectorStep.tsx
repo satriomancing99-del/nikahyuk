@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, Eye } from 'lucide-react';
 import { Template } from '../../../../../types/database.types';
 import { getTemplateThumbnail } from '../../../../../utils/templateThumbnails';
 
@@ -91,13 +91,13 @@ export const ThemeSelectorStep: React.FC<ThemeSelectorStepProps> = ({
             <div 
               key={tpl.id || tpl.slug}
               onClick={() => setSelectedTemplate(tpl)}
-              className={`group cursor-pointer rounded-2xl border overflow-hidden bg-white transition relative ${
+              className={`group cursor-pointer rounded-2xl border overflow-hidden bg-white transition relative flex flex-col justify-between ${
                 isSelected 
                   ? 'border-primary-500 ring-2 ring-primary-500 ring-opacity-20 shadow-md' 
                   : 'border-gray-200 hover:border-gray-300 shadow-sm'
               }`}
             >
-              <div className="aspect-[4/3] bg-gray-100 overflow-hidden relative">
+              <div className="aspect-[4/3] bg-gray-100 overflow-hidden relative flex-shrink-0">
                 <img 
                   src={tpl.thumbnail_url || getTemplateThumbnail(tpl.slug, tpl.category, tpl.price) || getTemplateThumbnail('classic-silver')} 
                   alt={tpl.name}
@@ -120,13 +120,28 @@ export const ThemeSelectorStep: React.FC<ThemeSelectorStepProps> = ({
                   </div>
                 )}
               </div>
-              <div className="p-4">
-                <h4 className="font-bold text-gray-900 group-hover:text-primary-600 transition truncate">{tpl.name}</h4>
-                <div className="flex items-center justify-between mt-1 text-xs">
-                  <span className="text-gray-500">Premium</span>
-                  <span className="font-bold text-gray-900">
-                    {Number(tpl.price) === 0 || Number(tpl.price) === 49000 ? '🤍 Silver (Bawaan)' : `Rp ${Number(tpl.price).toLocaleString('id-ID')}`}
-                  </span>
+              <div className="p-4 flex flex-col justify-between flex-grow">
+                <div>
+                  <h4 className="font-bold text-gray-900 group-hover:text-primary-600 transition truncate">{tpl.name}</h4>
+                  <div className="flex items-center justify-between mt-1 text-xs">
+                    <span className="text-gray-500">Premium</span>
+                    <span className="font-bold text-gray-900">
+                      {Number(tpl.price) === 0 || Number(tpl.price) === 49000 ? '🤍 Silver (Bawaan)' : `Rp ${Number(tpl.price).toLocaleString('id-ID')}`}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(`/preview/${tpl.slug}`, '_blank');
+                    }}
+                    className="w-full bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs py-2 rounded-xl transition flex items-center justify-center gap-1.5 border border-slate-200 shadow-sm"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Pratinjau Desain
+                  </button>
                 </div>
               </div>
             </div>
