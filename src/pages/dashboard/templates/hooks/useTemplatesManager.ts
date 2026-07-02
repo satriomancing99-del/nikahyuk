@@ -147,11 +147,29 @@ export const useTemplatesManager = () => {
       finalSlug = finalSlug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
       let finalThumbnailUrl = draftTemplate.thumbnail_url || '';
-      if (thumbnailFile) {
-        const fileExt = thumbnailFile.name.split('.').pop()?.toLowerCase() || 'png';
+      let fileToUpload = thumbnailFile;
+      if (!fileToUpload && finalThumbnailUrl.startsWith('data:image/')) {
+        try {
+          const arr = finalThumbnailUrl.split(',');
+          const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
+          const bstr = atob(arr[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+          }
+          const fileExt = mime.split('/').pop() || 'png';
+          fileToUpload = new File([u8arr], `thumbnail.${fileExt}`, { type: mime });
+        } catch (e) {
+          console.error('Error converting base64 thumbnail to File:', e);
+        }
+      }
+
+      if (fileToUpload) {
+        const fileExt = fileToUpload.name.split('.').pop()?.toLowerCase() || 'png';
         const filePath = `templates/${finalSlug}/thumbnail_${Date.now()}.${fileExt}`;
         const { storageService } = await import('../../../../services');
-        finalThumbnailUrl = await storageService.uploadFile(thumbnailFile, 'template-thumbnails', filePath);
+        finalThumbnailUrl = await storageService.uploadFile(fileToUpload, 'template-thumbnails', filePath);
       }
 
       const payload: any = {
