@@ -7,7 +7,7 @@ import { useAuthStore } from '../stores/authStore';
 import { Template } from '../types/database.types';
 import { getTemplateThumbnail } from '../utils/templateThumbnails';
 
-const FALLBACK_TEMPLATES: Template[] = [
+export const FALLBACK_TEMPLATES: Template[] = [
   // 1. Classic Category Tiers
   {
     id: 'c-silver',
@@ -233,12 +233,16 @@ export default function PublicTemplates() {
       try {
         const { templateService } = await import('../services');
         const data = await templateService.getAll({ status: 'active' });
+        const dbTemplates = data || [];
+        const combined = [...dbTemplates];
+        const dbSlugs = new Set(dbTemplates.map(t => t.slug));
         
-        if (data && data.length > 0) {
-          setTemplates(data);
-        } else {
-          setTemplates(FALLBACK_TEMPLATES);
-        }
+        FALLBACK_TEMPLATES.forEach(fallback => {
+          if (!dbSlugs.has(fallback.slug)) {
+            combined.push(fallback);
+          }
+        });
+        setTemplates(combined);
       } catch (err) {
         console.error('Error fetching templates:', err);
         setTemplates(FALLBACK_TEMPLATES);
@@ -259,8 +263,8 @@ export default function PublicTemplates() {
         : t.category?.toLowerCase() === selectedCategory.toLowerCase());
     
     let templateTier = 'Silver';
-    if (Number(t.price) === 99000) templateTier = 'Gold';
-    else if (Number(t.price) === 149000) templateTier = 'Platinum';
+    if (Number(t.price) >= 149000) templateTier = 'Platinum';
+    else if (Number(t.price) >= 99000) templateTier = 'Gold';
 
     const matchesTier = selectedTier === 'All' || templateTier === selectedTier;
     
@@ -272,8 +276,8 @@ export default function PublicTemplates() {
 
   const handleUseTemplate = (slug: string, price: number) => {
     let tier = 'silver';
-    if (Number(price) === 99000) tier = 'gold';
-    else if (Number(price) === 149000) tier = 'platinum';
+    if (Number(price) >= 149000) tier = 'platinum';
+    else if (Number(price) >= 99000) tier = 'gold';
 
     if (user) {
       navigate(`/dashboard/invitations/create?template=${slug}&package=${tier}`);

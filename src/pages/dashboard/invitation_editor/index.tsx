@@ -8,8 +8,9 @@ import { GalleryUploadStep } from './components/FormSteps/GalleryUploadStep';
 import { GiftRegistryStep } from './components/FormSteps/GiftRegistryStep';
 import { SlugConfigStep } from './components/FormSteps/SlugConfigStep';
 import { ImageCropperModal } from './components/ImageCropperModal';
-import { base64ToFile } from './utils/editorHelpers';
 import { templateService, invitationService, eventService, giftService, mediaService, storageService } from '../../../services';
+import { base64ToFile } from './utils/editorHelpers';
+import { FALLBACK_TEMPLATES } from '../../PublicTemplates';
 
 export default function InvitationEditor() {
   const editor = useInvitationEditor();
@@ -142,8 +143,17 @@ export default function InvitationEditor() {
   useEffect(() => {
     if (!isDataLoaded) return;
     templateService.getAll().then(list => {
-      const activeTemplates = list.filter(t => t.status === 'active');
-      setTemplates(activeTemplates);
+      const activeDbTemplates = list.filter(t => t.status === 'active');
+      const combined = [...activeDbTemplates];
+      const dbSlugs = new Set(activeDbTemplates.map(t => t.slug));
+      
+      FALLBACK_TEMPLATES.forEach(fallback => {
+        if (!dbSlugs.has(fallback.slug)) {
+          combined.push(fallback);
+        }
+      });
+      
+      setTemplates(combined);
       
       const savedEditDraft = localStorage.getItem(`nikahyuk_edit_draft_${editId}`);
       const savedDraft = localStorage.getItem('nikahyuk_creation_draft');
@@ -158,13 +168,13 @@ export default function InvitationEditor() {
           } catch(e) {}
         }
         if (selectedTplId) {
-          restoredTpl = activeTemplates.find(t => t.id === selectedTplId);
+          restoredTpl = combined.find(t => t.id === selectedTplId);
         }
       } else if (savedDraft) {
         try {
           const draft = JSON.parse(savedDraft);
           if (draft.selectedTemplateId) {
-            restoredTpl = activeTemplates.find(t => t.id === draft.selectedTemplateId);
+            restoredTpl = combined.find(t => t.id === draft.selectedTemplateId);
           }
         } catch(e) {}
       }
