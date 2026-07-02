@@ -20,6 +20,7 @@ export interface Template {
   preview_url: string;
   status: string;
   jsx_code?: string;
+  created_by?: string | null;
   created_at: string;
   updated_at: string;
 }

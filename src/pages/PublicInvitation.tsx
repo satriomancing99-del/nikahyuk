@@ -12,6 +12,8 @@ import { supabase } from '../lib/supabase';
 import { cloudflareApi } from '../lib/cloudflare-api';
 import { Invitation, Event as DBEvent, Gift as DBGift, Media, Wish, Guest } from '../types/database.types';
 
+const isD1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
+
 // Mock data for previewing template designs
 const MOCK_INVITATION: Invitation = {
   id: 'preview-inv',
@@ -576,7 +578,11 @@ export default function PublicInvitation() {
 
       // 3. Transpile using Babel standalone
       const transpiled = (window as any).Babel.transform(cleanedCode, {
-        presets: ['env', 'react']
+        presets: [
+          ['env', { modules: 'commonjs' }],
+          ['react', { runtime: 'classic' }]
+        ],
+        sourceType: 'script'
       }).code;
 
       // 4. Create component builder function with full dynamic scope variables

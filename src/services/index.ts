@@ -24,19 +24,35 @@ class InvitationService extends BaseService<T.Invitation> {
     super('invitations');
   }
 
-  async getAll() {
+  async getAll(filter?: Record<string, any>) {
     if (USE_D1) {
-      const list = await cloudflareApi.getTableRows<T.Invitation>(this.tableName);
+      const d1Filter: Record<string, string> = {};
+      if (filter) {
+        Object.entries(filter).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) {
+            d1Filter[k] = String(v);
+          }
+        });
+      }
+      const list = await cloudflareApi.getTableRows<T.Invitation>(this.tableName, d1Filter);
       const templates = await cloudflareApi.getTableRows<T.Template>('templates');
       return list.map(inv => ({
         ...inv,
         templates: templates.find(t => t.id === inv.template_id) || null
       }));
     }
-    const { data, error } = await supabase
+    let query = supabase
       .from(this.tableName)
       .select('*, templates:template_id(*)')
       .order('created_at', { ascending: false });
+    if (filter) {
+      Object.entries(filter).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) {
+          query = query.eq(k, v);
+        }
+      });
+    }
+    const { data, error } = await query;
     if (error) throw error;
     return data;
   }
