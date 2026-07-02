@@ -53,6 +53,7 @@ Tulis konfigurasi metadata template Anda dengan format JSON berikut:
 
 2. DESAIN ESTETIKA & DIVERSIFIKASI LAYOUT (AESTHETIC & DIVERSE DESIGN GUIDELINES):
 - **PETUNJUK TEMA UNIVERSAL (PENTING)**: Secara default, buatlah tema desain yang universal, netral, dan cocok untuk seluruh agama/tradisi (seperti Classic, Rustic, Floral, atau Minimalist) dengan kutipan cinta/pernikahan yang romantis secara universal, KECUALI jika pengguna secara spesifik meminta tema keagamaan tertentu (seperti Islamic).
+- **ATURAN PENGGUNAAN IKON DAN LOGO PEMBUKA**: DILARANG KERAS menggunakan logo atau ikon berbentuk bintang, kilauan, atau sparkle (seperti \`Sparkles\`, \`Sparkle\`, \`Star\`) di bagian manapun sebagai logo pembuka utama atau ikon tombol pembuka. Sebagai gantinya, gunakan ikon bernuansa cinta, pernikahan, atau romantis (seperti \`Heart\` atau \`MailOpen\`) untuk memperkuat kesan sakral undangan.
 - JANGAN terpaku pada 1 model desain standar. Buatlah desain, struktur layout, kombinasi warna, border-radius, font, gaya ornamen visual, ornamen dekoratif, grid foto (hindari tata letak baris kotak seragam yang monoton dan membosankan), bingkai foto dan transisi yang SEPENUHNYA UNIK, berbeda, inovatif, dan berkelas dunia untuk setiap kategori:
   * **Rustic/Botanical**: Gunakan earthy tones (cokelat pasir, krem lembut, hijau zaitun), font serif bernuansa klasik, dekorasi botani minimalis, border melengkung organik yang halus, dan nuansa kertas daur ulang bertekstur.
   * **Minimalist/Bento-Grid**: Tata letak asimetris kontemporer berbasis kotak (bento-style grid) tanpa border melingkar kasar, menggunakan ruang putih (white space) yang luas, tipografi sans-serif uppercase tipis pelengkap, dan skema warna monokromatik modern berserat mewah.
@@ -90,7 +91,7 @@ Agar tidak terjadi error "Cannot read properties of undefined", wajib gunakan op
   * PENTING: Untuk kedua formulir tersebut (RSVP & Buku Tamu), jika data guest tersedia (tamu mengakses via link personal), input "Nama Tamu" WAJIB dibuat read-only atau disabled dengan style visual yang jelas (seperti background abu-abu & kursor tidak bisa diklik), serta otomatis terisi nilai \`guest.name\` agar tidak bisa dirubah secara manual oleh pengunjung. Ini krusial demi menjaga integritas data daftar tamu yang diimpor dari CSV atau daftar kustom yang sudah dibuat oleh customer!
 - gifts (Array rekening/hadiah amplop digital):
   ${giftText}
-- gallery (Array foto dari database, berisi foto profil mempelai dan foto prewedding):
+- gallery (Array foto dari database, berisi foto profil mempelai and foto prewedding):
   * **PENTING: Ekstraksi Foto Profil Mempelai Secara Spesifik (Wajib Diikuti!):**
     * **Foto Profil Pria (Groom Photo):** Wajib diekstrak dari gallery menggunakan filter caption 'groom_photo':
       \`const groomPhoto = gallery?.find(img => img.caption === 'groom_photo')?.url || mempelai?.thumbnail_url;\`
@@ -100,7 +101,7 @@ Agar tidak terjadi error "Cannot read properties of undefined", wajib gunakan op
     * Saat merender blok galeri prewedding (grid foto kustomer), Anda **WAJIB MENYARING KELUAR** (exclude) foto profil mempelai agar foto profil tidak muncul ganda di galeri prewedding.
     * Gunakan filter berikut sebelum merender galeri prewedding:
       \`const preweddingImages = gallery?.filter(img => img.caption !== 'groom_photo' && img.caption !== 'bride_photo') || [];\`
-    * Lakukan render/mapping dari variabel \`preweddingImages\` yang sudah disaring tersebut, bukan dari array raw \`gallery\`!
+    * Lakukan render/mapping dari variabel \`preweddingImages\` yang sudah saringan tersebut, bukan dari array raw \`gallery\`!
   * **Urutan Foto Galeri Prewedding Berdasarkan Input Kustomer (Krusial!):** Data dalam array \`preweddingImages\` diurutkan secara berurutan sesuai urutan unggahan kustomer di dashboard:
     * \`preweddingImages?.[0]\` = Foto Prewedding Ke-1
     * \`preweddingImages?.[1]\` = Foto Prewedding Ke-2
@@ -120,10 +121,10 @@ Agar tidak terjadi error "Cannot read properties of undefined", wajib gunakan op
 
 4. GAMBARAN BESAR STRUKTUR KONTEN & INTERAKTIF (THE BIG PICTURE OF REQUIRED SECTIONS):
 Anda dibebaskan menyusun layout, hierarki visual, warna, dan kombinasi animasi secara sekreatif mungkin, namun secara garis besar wajib menyajikan blok interaktif berikut:
-- **Cover Welcome Overlay**: Layar sambutan awal yang menghalangi konten utama sebelum diklik. Menampilkan nama mempelai, nama personal tamu kustom (\`guest?.name || 'Tamu Terhormat'\`), dan tombol pembuka undangan interaktif. Ketika tombol diklik, gerbang cover meluncur ke atas (*slide-up*) dengan transisi super-halus dan memicu musik latar kustomer (\`mempelai?.music_url\`) berputar otomatis secara *looping*.
+- **Cover Welcome Overlay**: Layar sambutan awal yang menghalangi konten utama sebelum diklik. Menampilkan nama mempelai, nama personal tamu kustom (\`guest?.name || 'Tamu Terhormat'\`), dan tombol pembuka undangan interaktif. Ketika tombol diklik, gerbang cover meluncur ke atas (*slide-up*) dengan transisi super-halus dan memicu musik latar kustomer (\`mempelai?.music_url\`) berputar otomatis secara *looping*. **PENTING**: Gunakan ikon bertema cinta/romantis (seperti \`Heart\` atau \`MailOpen\`) pada tombol pembuka atau sebagai dekorasi logo pembuka. **DILARANG** menggunakan ikon berbentuk bintang, kilauan, atau sparkle (seperti \`Sparkles\`, \`Sparkle\`, \`Star\`) sebagai logo atau ikon pembuka.
 - **Floating Audio Controller**: Tombol lingkaran mengambang elegan di sudut layar yang memungkinkan pengunjung memutar/menjeda (*play/pause*) musik latar kapan saja.
 - **Hero & Countdown Banner**: Sapaan megah nama mempelai berhias ornamen dekoratif/grafis yang disesuaikan dengan tema visual terpilih, dilengkapi modul hitung mundur dinamis menuju hari akad pernikahan.
-- **Profil Pasangan Mempelai**: Kartu profil personal mempelai pria dan wanita yang rapi lengkap dengan nama orang tua, menggunakan foto profil kustomer pria (\`gallery?.find(img => img.caption === 'groom_photo')?.url\` dengan fallback \`mempelai?.thumbnail_url\`) dan foto profil kustomer wanita (\`gallery?.find(img => img.caption === 'bride_photo')?.url\` dengan fallback \`mempelai?.thumbnail_url\`).
+- **Profil Pasangan Mempelai**: Kartu profil personal mempelai pria dan wanita yang rapi lengkap dengan nama orang tua, menggunakan foto profil kustomer pria (\`gallery?.find(img => img.caption === 'groom_photo')?.url\` dengan fallback \`mempelai?.thumbnail_url\`) and foto profil kustomer wanita (\`gallery?.find(img => img.caption === 'bride_photo')?.url\` dengan fallback \`mempelai?.thumbnail_url\`).
 - **Informasi Acara (Events)**: Menyajikan detail waktu, hari-H, alamat, dan tombol rute menuju Google Maps (\`google_maps_url\`) secara responsif.
 - **Form RSVP & Kirim Ucapan Terkunci**: Panel di mana tamu dapat mengonfirmasi status kedatangan dan mengetikkan ucapan selamat dengan kolom nama yang dikunci aman.
 - **Galeri Foto Bersih**: Cukup tampilkan deretan foto prewedding hasil upload kustomer dalam kontainer grid responsif yang estetis. PENTING: Kontainer galeri ini hanya boleh berisi gambar saja, tanpa ada teks penjelasan, keterangan layout, atau caption sama sekali di layar!
