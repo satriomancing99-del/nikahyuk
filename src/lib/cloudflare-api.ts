@@ -370,9 +370,6 @@ export const cloudflareApi = {
     }
   },
 
-  /**
-   * Generic Delete row from any table (Protected Write)
-   */
   async deleteTableRow(tableName: string, id: string): Promise<boolean> {
     try {
       const response = await fetchWithTimeout(
@@ -387,6 +384,28 @@ export const cloudflareApi = {
       return true;
     } catch (error) {
       console.error(`[Cloudflare API] Failed to delete in table ${tableName}:`, error);
+      return false;
+    }
+  },
+
+  /**
+   * Generic Delete rows matching filters from any table (Protected Write)
+   */
+  async deleteTableRows(tableName: string, filter: Record<string, string>): Promise<boolean> {
+    try {
+      const queryParams = "?" + new URLSearchParams(filter).toString();
+      const response = await fetchWithTimeout(
+        `${API_BASE_URL}/api/tables/${tableName}${queryParams}`,
+        {
+          method: "DELETE",
+          headers: this.getHeaders(true),
+          credentials: "include"
+        }
+      );
+      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+      return true;
+    } catch (error) {
+      console.error(`[Cloudflare API] Failed to delete rows in table ${tableName}:`, error);
       return false;
     }
   },

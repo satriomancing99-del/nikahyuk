@@ -382,26 +382,10 @@ export default function PublicInvitation() {
 
       try {
         setLoading(true);
-        const isD1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
         const { cloudflareApi } = await import('../lib/cloudflare-api');
 
-        // Fetch core invitation from Cloudflare D1 via Worker API (Try Cloudflare first, fallback to Supabase)
-        let inv: any = null;
-        if (isD1) {
-          inv = await cloudflareApi.getInvitationBySlug(invitationSlug);
-        } else {
-          try {
-            inv = await cloudflareApi.getInvitationBySlug(invitationSlug);
-          } catch (e) {
-            console.warn('Could not load invitation from Cloudflare Worker, falling back to Supabase.', e);
-            const { data } = await supabase
-              .from('invitations')
-              .select('*')
-              .eq('slug', invitationSlug)
-              .single();
-            inv = data;
-          }
-        }
+        // Fetch core invitation from Cloudflare D1 via Worker API
+        const inv = await cloudflareApi.getInvitationBySlug(invitationSlug);
 
         if (!inv) {
           setErrorText('Mohon maaf, halaman undangan digital tidak ditemukan.');
@@ -414,17 +398,7 @@ export default function PublicInvitation() {
         // Fetch associated template to style theme dynamically
         if (inv.template_id) {
           try {
-            let tpl: any = null;
-            if (isD1) {
-              tpl = await cloudflareApi.getTableRowById<any>('templates', inv.template_id);
-            } else {
-              const { data } = await supabase
-                .from('templates')
-                .select('*')
-                .eq('id', inv.template_id)
-                .single();
-              tpl = data;
-            }
+            const tpl = await cloudflareApi.getTableRowById<any>('templates', inv.template_id);
             if (tpl) {
               setTemplateCategory(tpl.category);
               if (tpl.jsx_code) {
@@ -442,29 +416,16 @@ export default function PublicInvitation() {
         let dbGallery = [];
         let dbWishes = [];
 
-        if (isD1) {
-          const [eventsRes, giftsRes, mediaRes, wishesRes] = await Promise.all([
-            cloudflareApi.getTableRows<any>('events', { invitation_id: inv.id }),
-            cloudflareApi.getTableRows<any>('gifts', { invitation_id: inv.id }),
-            cloudflareApi.getTableRows<any>('media', { invitation_id: inv.id }),
-            cloudflareApi.getTableRows<any>('wishes', { invitation_id: inv.id })
-          ]);
-          dbEvents = eventsRes;
-          dbGifts = giftsRes;
-          dbGallery = mediaRes;
-          dbWishes = wishesRes;
-        } else {
-          const [eventsRes, giftsRes, mediaRes, wishesRes] = await Promise.all([
-            supabase.from('events').select('*').eq('invitation_id', inv.id).order('date', { ascending: true }),
-            supabase.from('gifts').select('*').eq('invitation_id', inv.id).order('created_at', { ascending: true }),
-            supabase.from('media').select('*').eq('invitation_id', inv.id).order('sort_order', { ascending: true }),
-            supabase.from('wishes').select('*').eq('invitation_id', inv.id).order('created_at', { ascending: false })
-          ]);
-          dbEvents = eventsRes.data || [];
-          dbGifts = giftsRes.data || [];
-          dbGallery = mediaRes.data || [];
-          dbWishes = wishesRes.data || [];
-        }
+        const [eventsRes, giftsRes, mediaRes, wishesRes] = await Promise.all([
+          cloudflareApi.getTableRows<any>('events', { invitation_id: inv.id }),
+          cloudflareApi.getTableRows<any>('gifts', { invitation_id: inv.id }),
+          cloudflareApi.getTableRows<any>('media', { invitation_id: inv.id }),
+          cloudflareApi.getTableRows<any>('wishes', { invitation_id: inv.id })
+        ]);
+        dbEvents = eventsRes;
+        dbGifts = giftsRes;
+        dbGallery = mediaRes;
+        dbWishes = wishesRes;
 
         setEvents(dbEvents);
         
@@ -729,64 +690,30 @@ export default function PublicInvitation() {
     try {
       setRsvpSubmitting(true);
 
-      const isD1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
       const { cloudflareApi } = await import('../lib/cloudflare-api');
 
       // 1. Submit to rsvps table
-      if (isD1) {
-        await cloudflareApi.submitRsvp({
-          invitation_id: invitation.id,
-          guest_id: guest?.id || null,
-          guest_name: rsvpForm.name.trim(),
-          attendance_status: rsvpForm.attendance as 'attending' | 'declined',
-          total_guest: rsvpForm.attendance === 'attending' ? Number(rsvpForm.totalGuests) : 0,
-          message: rsvpForm.message.trim()
-        });
-      } else {
-        await supabase.from('rsvps').insert({
-          invitation_id: invitation.id,
-          guest_id: guest?.id || null,
-          guest_name: rsvpForm.name.trim(),
-          attendance_status: rsvpForm.attendance,
-          total_guest: rsvpForm.attendance === 'attending' ? Number(rsvpForm.totalGuests) : 0,
-          message: rsvpForm.message.trim()
-        });
-      }
+      await cloudflareApi.submitRsvp({
+        invitation_id: invitation.id,
+        guest_id: guest?.id || null,
+        guest_name: rsvpForm.name.trim(),
+        attendance_status: rsvpForm.attendance as 'attending' | 'declined',
+        total_guest: rsvpForm.attendance === 'attending' ? Number(rsvpForm.totalGuests) : 0,
+        message: rsvpForm.message.trim()
+      });
 
       // 2. Update status in guests table if guest metadata matches
       if (guest) {
-        if (isD1) {
-          await cloudflareApi.updateTableRow('guests', guest.id, { rsvp_status: rsvpForm.attendance });
-        } else {
-          await supabase
-            .from('guests')
-            .update({ rsvp_status: rsvpForm.attendance })
-            .eq('id', guest.id);
-        }
+        await cloudflareApi.updateTableRow('guests', guest.id, { rsvp_status: rsvpForm.attendance });
       }
 
       // 3. If they wrote a wish, post it to the wishes wall too!
       if (rsvpForm.message.trim()) {
-        let newWish: any = null;
-        if (isD1) {
-          newWish = await cloudflareApi.createTableRow<any>('wishes', {
-            invitation_id: invitation.id,
-            guest_name: rsvpForm.name.trim(),
-            message: rsvpForm.message.trim()
-          });
-        } else {
-          const { data, error: wishErr } = await supabase
-            .from('wishes')
-            .insert({
-              invitation_id: invitation.id,
-              guest_name: rsvpForm.name.trim(),
-              message: rsvpForm.message.trim()
-            })
-            .select()
-            .single();
-          if (wishErr) throw wishErr;
-          newWish = data;
-        }
+        const newWish = await cloudflareApi.createTableRow<any>('wishes', {
+          invitation_id: invitation.id,
+          guest_name: rsvpForm.name.trim(),
+          message: rsvpForm.message.trim()
+        });
 
         if (newWish) {
           setWishes(prev => [newWish, ...prev]);

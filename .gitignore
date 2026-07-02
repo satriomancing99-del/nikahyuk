@@ -14,3 +14,7 @@ scratch/
 
 # Database Migration Data
 scripts/migration/data/
+
+# Exclude all markdown files except README.md
+*.md
+!README.md

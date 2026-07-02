@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import { supabase } from '../../../../lib/supabase';
+import { promoService } from '../../../../services';
 
 export const usePromos = () => {
   const [promos, setPromos] = useState<any[]>([]);
@@ -25,19 +25,7 @@ export const usePromos = () => {
   const loadPromos = async () => {
     try {
       setLoadingPromos(true);
-      const isD1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
-      let data = [];
-      if (isD1) {
-        const { promoService } = await import('../../../../services');
-        data = await promoService.getAll();
-      } else {
-        const { data: sbData, error } = await supabase
-          .from('promos')
-          .select('*')
-          .order('created_at', { ascending: false });
-        if (error) throw error;
-        data = sbData || [];
-      }
+      const data = await promoService.getAll();
       setPromos(data);
     } catch (err) {
       console.error('Error fetching promos:', err);
@@ -55,21 +43,11 @@ export const usePromos = () => {
     setPromoSuccess(null);
     setCheckingPromo(true);
     try {
-      const isD1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
+      const { cloudflareApi } = await import('../../../../lib/cloudflare-api');
+      const list = await cloudflareApi.getTableRows('promos', { code: promoCode.trim().toUpperCase() });
       let data: any = null;
-      if (isD1) {
-        const { cloudflareApi } = await import('../../../../lib/cloudflare-api');
-        const list = await cloudflareApi.getTableRows('promos', { code: promoCode.trim().toUpperCase() });
-        if (list && list.length > 0) {
-          data = list[0];
-        }
-      } else {
-        const { data: sbData, error } = await supabase
-          .from('promos')
-          .select('*')
-          .eq('code', promoCode.trim().toUpperCase())
-          .single();
-        if (!error) data = sbData;
+      if (list && list.length > 0) {
+        data = list[0];
       }
 
       if (!data) {
@@ -146,16 +124,7 @@ export const usePromos = () => {
         expired_at: newPromoExpiry ? new Date(newPromoExpiry).toISOString() : null,
       };
 
-      const isD1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
-      let data: any = null;
-      if (isD1) {
-        const { promoService } = await import('../../../../services');
-        data = await promoService.create(payload);
-      } else {
-        const { data: sbData, error } = await supabase.from('promos').insert(payload).select().single();
-        if (error) throw error;
-        data = sbData;
-      }
+      const data = await promoService.create(payload);
 
       setPromos(prev => [data, ...prev]);
       alert(`Kode Promo "${payload.code}" berhasil dibuat!`);
@@ -178,14 +147,7 @@ export const usePromos = () => {
     const nextStatus = promo.status === 'active' ? 'inactive' : 'active';
     try {
       setActionLoading(true);
-      const isD1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
-      if (isD1) {
-        const { promoService } = await import('../../../../services');
-        await promoService.update(promo.id, { status: nextStatus });
-      } else {
-        const { error } = await supabase.from('promos').update({ status: nextStatus }).eq('id', promo.id);
-        if (error) throw error;
-      }
+      await promoService.update(promo.id, { status: nextStatus });
       setPromos(prev => prev.map(p => p.id === promo.id ? { ...p, status: nextStatus } : p));
     } catch (err: any) {
       console.error('Error toggling promo status:', err);
@@ -199,14 +161,7 @@ export const usePromos = () => {
     if (!window.confirm(`Hapus kode promo "${code}"?`)) return;
     try {
       setActionLoading(true);
-      const isD1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
-      if (isD1) {
-        const { promoService } = await import('../../../../services');
-        await promoService.delete(id);
-      } else {
-        const { error } = await supabase.from('promos').delete().eq('id', id);
-        if (error) throw error;
-      }
+      await promoService.delete(id);
       setPromos(prev => prev.filter(p => p.id !== id));
       alert('Kode promo berhasil dihapus.');
     } catch (err: any) {

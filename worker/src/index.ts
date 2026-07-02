@@ -551,14 +551,10 @@ export default {
         return jsonResponse({ success: true, message: "File deleted successfully" }, 200, corsHeaders);
       }
 
-      // Route: GET /api/tables/:tableName (Protected Table Read)
+      // Route: GET /api/tables/:tableName (Protected/Public Table Read)
       const tableMatch = path.match(/^\/api\/tables\/([^/]+)$/);
       if (method === "GET" && tableMatch) {
-        if (!checkAppSecret(request, env) && !(await getAuthUserId(request, sessionRepo))) {
-          return jsonResponse({ error: "Unauthorized" }, 401, corsHeaders);
-        }
         const tableName = tableMatch[1];
-        
         const ALLOWED_TABLES = [
           'profiles', 'packages', 'templates', 'invitations', 'events', 
           'guests', 'rsvps', 'wishes', 'gifts', 'media', 
@@ -568,30 +564,27 @@ export default {
           return jsonResponse({ error: "Invalid table name" }, 400, corsHeaders);
         }
 
-        const id = url.searchParams.get("id");
-        const userId = url.searchParams.get("user_id");
-        const invitationId = url.searchParams.get("invitation_id");
-        const guestCode = url.searchParams.get("guest_code");
+        const PROTECTED_GET_TABLES = ['profiles', 'transactions', 'promos', 'checkins'];
+        const isProtectedGet = PROTECTED_GET_TABLES.includes(tableName);
+        
+        if (isProtectedGet) {
+          if (!checkAppSecret(request, env) && !(await getAuthUserId(request, sessionRepo))) {
+            return jsonResponse({ error: "Unauthorized" }, 401, corsHeaders);
+          }
+        }
 
+        const ALLOWED_FILTERS = ['id', 'user_id', 'invitation_id', 'guest_code', 'slug', 'key', 'email', 'code', 'created_by'];
         let query = `SELECT * FROM ${tableName}`;
         const params: any[] = [];
         const conditions: string[] = [];
 
-        if (id) {
-          conditions.push("id = ?");
-          params.push(id);
-        }
-        if (userId) {
-          conditions.push("user_id = ?");
-          params.push(userId);
-        }
-        if (invitationId) {
-          conditions.push("invitation_id = ?");
-          params.push(invitationId);
-        }
-        if (guestCode) {
-          conditions.push("guest_code = ?");
-          params.push(guestCode);
+        for (const filterKey of ALLOWED_FILTERS) {
+          const val = url.searchParams.get(filterKey);
+          if (val) {
+            const columnName = (tableName === 'system_settings' && filterKey === 'id') ? 'key' : filterKey;
+            conditions.push(`${columnName} = ?`);
+            params.push(val);
+          }
         }
 
         if (conditions.length > 0) {
@@ -620,7 +613,7 @@ export default {
         }
 
         const body = await request.json<any>();
-        if (!body.id) {
+        if (!body.id && tableName !== 'system_settings') {
           body.id = crypto.randomUUID();
         }
         const columns = Object.keys(body);
@@ -654,12 +647,13 @@ export default {
         const values = Object.values(body);
         values.push(id);
 
-        const query = `UPDATE ${tableName} SET ${setClauses} WHERE id = ? RETURNING *`;
+        const primaryKey = tableName === 'system_settings' ? 'key' : 'id';
+        const query = `UPDATE ${tableName} SET ${setClauses} WHERE ${primaryKey} = ? RETURNING *`;
         const result = await env.DB.prepare(query).bind(...values).first();
         return jsonResponse(result, 200, corsHeaders);
       }
 
-      // Route: DELETE /api/tables/:tableName/:id (Protected Table Delete)
+      // Route: DELETE /api/tables/:tableName/:id (Protected Table Delete by ID)
       if (method === "DELETE" && tableIdMatch) {
         if (!checkAppSecret(request, env) && !(await getAuthUserId(request, sessionRepo))) {
           return jsonResponse({ error: "Unauthorized" }, 401, corsHeaders);
@@ -675,9 +669,48 @@ export default {
           return jsonResponse({ error: "Invalid table name" }, 400, corsHeaders);
         }
 
-        const query = `DELETE FROM ${tableName} WHERE id = ?`;
+        const primaryKey = tableName === 'system_settings' ? 'key' : 'id';
+        const query = `DELETE FROM ${tableName} WHERE ${primaryKey} = ?`;
         await env.DB.prepare(query).bind(id).run();
         return jsonResponse({ success: true, message: "Deleted successfully" }, 200, corsHeaders);
+      }
+
+      // Route: DELETE /api/tables/:tableName (Protected Bulk Delete by Filters)
+      if (method === "DELETE" && tableMatch) {
+        if (!checkAppSecret(request, env) && !(await getAuthUserId(request, sessionRepo))) {
+          return jsonResponse({ error: "Unauthorized" }, 401, corsHeaders);
+        }
+        const tableName = tableMatch[1];
+        const ALLOWED_TABLES = [
+          'profiles', 'packages', 'templates', 'invitations', 'events', 
+          'guests', 'rsvps', 'wishes', 'gifts', 'media', 
+          'checkins', 'promos', 'transactions', 'music_library', 'system_settings'
+        ];
+        if (!ALLOWED_TABLES.includes(tableName)) {
+          return jsonResponse({ error: "Invalid table name" }, 400, corsHeaders);
+        }
+
+        const ALLOWED_FILTERS = ['id', 'user_id', 'invitation_id', 'guest_code', 'slug', 'key', 'email', 'code', 'created_by'];
+        let query = `DELETE FROM ${tableName}`;
+        const params: any[] = [];
+        const conditions: string[] = [];
+
+        for (const filterKey of ALLOWED_FILTERS) {
+          const val = url.searchParams.get(filterKey);
+          if (val) {
+            const columnName = (tableName === 'system_settings' && filterKey === 'id') ? 'key' : filterKey;
+            conditions.push(`${columnName} = ?`);
+            params.push(val);
+          }
+        }
+
+        if (conditions.length === 0) {
+          return jsonResponse({ error: "Cannot delete all rows without filters" }, 400, corsHeaders);
+        }
+
+        query += ` WHERE ${conditions.join(" AND ")}`;
+        await env.DB.prepare(query).bind(...params).run();
+        return jsonResponse({ success: true, message: "Deleted matching rows successfully" }, 200, corsHeaders);
       }
 
       // Route not matched

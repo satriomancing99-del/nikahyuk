@@ -1,7 +1,4 @@
-import { supabase } from '../lib/supabase';
 import { cloudflareApi } from '../lib/cloudflare-api';
-
-const USE_D1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
 
 export class BaseService<T> {
   protected tableName: string;
@@ -10,48 +7,41 @@ export class BaseService<T> {
     this.tableName = tableName;
   }
 
-  async getAll(): Promise<T[]> {
-    if (USE_D1) {
-      return await cloudflareApi.getTableRows<T>(this.tableName);
+  async getAll(filter?: Record<string, any>): Promise<T[]> {
+    const d1Filter: Record<string, string> = {};
+    if (filter) {
+      Object.entries(filter).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) {
+          d1Filter[k] = String(v);
+        }
+      });
     }
-    const { data, error } = await supabase.from(this.tableName).select('*').order('created_at', { ascending: false });
-    if (error) throw error;
-    return data as T[];
+    return await cloudflareApi.getTableRows<T>(this.tableName, d1Filter);
   }
 
   async getById(id: string): Promise<T> {
-    if (USE_D1) {
-      return await cloudflareApi.getTableRowById<T>(this.tableName, id);
-    }
-    const { data, error } = await supabase.from(this.tableName).select('*').eq('id', id).single();
-    if (error) throw error;
-    return data as T;
+    return await cloudflareApi.getTableRowById<T>(this.tableName, id);
   }
 
   async create(payload: Partial<T>): Promise<T> {
-    if (USE_D1) {
-      return await cloudflareApi.createTableRow<T>(this.tableName, payload);
-    }
-    const { data, error } = await supabase.from(this.tableName).insert(payload as any).select().single();
-    if (error) throw error;
-    return data as T;
+    return await cloudflareApi.createTableRow<T>(this.tableName, payload);
   }
 
   async update(id: string, payload: Partial<T>): Promise<T> {
-    if (USE_D1) {
-      return await cloudflareApi.updateTableRow<T>(this.tableName, id, payload);
-    }
-    const { data, error } = await supabase.from(this.tableName).update(payload as any).eq('id', id).select().single();
-    if (error) throw error;
-    return data as T;
+    return await cloudflareApi.updateTableRow<T>(this.tableName, id, payload);
   }
 
   async delete(id: string): Promise<boolean> {
-    if (USE_D1) {
-      return await cloudflareApi.deleteTableRow(this.tableName, id);
-    }
-    const { error } = await supabase.from(this.tableName).delete().eq('id', id);
-    if (error) throw error;
-    return true;
+    return await cloudflareApi.deleteTableRow(this.tableName, id);
+  }
+
+  async deleteMany(filter: Record<string, any>): Promise<boolean> {
+    const d1Filter: Record<string, string> = {};
+    Object.entries(filter).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) {
+        d1Filter[k] = String(v);
+      }
+    });
+    return await cloudflareApi.deleteTableRows(this.tableName, d1Filter);
   }
 }

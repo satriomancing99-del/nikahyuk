@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../../../stores/authStore';
 import { transactionService, packageService, storageService } from '../../../../services';
 import { Transaction, Package } from '../../../../types/database.types';
-import { supabase } from '../../../../lib/supabase';
 
 const FALLBACK_PACKAGES: Package[] = [
   {
@@ -61,21 +60,11 @@ export const useTransactions = () => {
       setPackages(pkgsList);
 
       let txList: Transaction[] = [];
-      if (import.meta.env.VITE_USE_D1_AUTH === 'true') {
-        const { cloudflareApi } = await import('../../../../lib/cloudflare-api');
-        if (profile.role === 'super_admin') {
-          txList = await cloudflareApi.getTableRows<Transaction>('transactions');
-        } else {
-          txList = await cloudflareApi.getTableRows<Transaction>('transactions', { user_id: profile.id });
-        }
+      const { cloudflareApi } = await import('../../../../lib/cloudflare-api');
+      if (profile.role === 'super_admin') {
+        txList = await cloudflareApi.getTableRows<Transaction>('transactions');
       } else {
-        if (profile.role === 'super_admin') {
-          const { data } = await supabase.from('transactions').select('*').order('created_at', { ascending: false });
-          txList = (data || []) as Transaction[];
-        } else {
-          const { data } = await supabase.from('transactions').select('*').eq('user_id', profile.id).order('created_at', { ascending: false });
-          txList = (data || []) as Transaction[];
-        }
+        txList = await cloudflareApi.getTableRows<Transaction>('transactions', { user_id: profile.id });
       }
       setTransactions(txList);
     } catch (err) {
@@ -105,17 +94,9 @@ export const useTransactions = () => {
     try {
       setActionLoading(true);
       
-      const isD1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
       const { cloudflareApi } = await import('../../../../lib/cloudflare-api');
       
-      let tx: Transaction | null = null;
-      if (isD1) {
-        tx = await cloudflareApi.getTableRowById<Transaction>('transactions', id);
-      } else {
-        const { data, error } = await supabase.from('transactions').select('*').eq('id', id).single();
-        if (error) throw error;
-        tx = data;
-      }
+      const tx = await cloudflareApi.getTableRowById<Transaction>('transactions', id);
       if (!tx) throw new Error('Transaksi tidak ditemukan.');
 
       const pkg = packages.find(p => p.id === tx.package_id);
@@ -124,31 +105,17 @@ export const useTransactions = () => {
       const expiredAt = new Date();
       expiredAt.setDate(expiredAt.getDate() + activePeriodDays);
 
-      if (isD1) {
-        await cloudflareApi.updateTableRow('transactions', id, {
-          payment_status: 'success',
-          activated_at: activatedAt.toISOString(),
+      await cloudflareApi.updateTableRow('transactions', id, {
+        payment_status: 'success',
+        activated_at: activatedAt.toISOString(),
+        expired_at: expiredAt.toISOString()
+      });
+
+      const invs = await cloudflareApi.getInvitationsByUserId(tx.user_id);
+      if (invs && invs.length > 0) {
+        await cloudflareApi.updateTableRow('invitations', invs[0].id, {
           expired_at: expiredAt.toISOString()
         });
-
-        const invs = await cloudflareApi.getInvitationsByUserId(tx.user_id);
-        if (invs && invs.length > 0) {
-          await cloudflareApi.updateTableRow('invitations', invs[0].id, {
-            expired_at: expiredAt.toISOString()
-          });
-        }
-      } else {
-        const { error: updateErr } = await supabase.from('transactions').update({
-          payment_status: 'success',
-          activated_at: activatedAt.toISOString(),
-          expired_at: expiredAt.toISOString()
-        }).eq('id', id);
-        if (updateErr) throw updateErr;
-
-        const { data: invs } = await supabase.from('invitations').select('id').eq('user_id', tx.user_id).limit(1);
-        if (invs && invs.length > 0) {
-          await supabase.from('invitations').update({ expired_at: expiredAt.toISOString() }).eq('id', invs[0].id);
-        }
       }
 
       setTransactions(prev => prev.map(t => t.id === id ? { ...t, payment_status: 'success', activated_at: activatedAt.toISOString(), expired_at: expiredAt.toISOString() } : t));
@@ -185,13 +152,8 @@ export const useTransactions = () => {
     if (!window.confirm('Hapus transaksi ini permanen?')) return;
     try {
       setActionLoading(true);
-      if (import.meta.env.VITE_USE_D1_AUTH === 'true') {
-        const { cloudflareApi } = await import('../../../../lib/cloudflare-api');
-        await cloudflareApi.deleteTableRow('transactions', id);
-      } else {
-        const { error } = await supabase.from('transactions').delete().eq('id', id);
-        if (error) throw error;
-      }
+      const { cloudflareApi } = await import('../../../../lib/cloudflare-api');
+      await cloudflareApi.deleteTableRow('transactions', id);
       setTransactions(prev => prev.filter(t => t.id !== id));
       alert('Transaksi dihapus.');
     } catch (err: any) {

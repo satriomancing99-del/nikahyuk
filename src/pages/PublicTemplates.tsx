@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   Heart, Palette, Search, Eye, Loader2, ArrowRight, CheckCircle2
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
 import { Template } from '../types/database.types';
 import { getTemplateThumbnail } from '../utils/templateThumbnails';
@@ -232,20 +231,8 @@ export default function PublicTemplates() {
     document.title = 'Katalog Template Undangan Pernikahan Premium | NikahYuk!';
     async function fetchTemplates() {
       try {
-        const isD1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
-        let data = [];
-        if (isD1) {
-          const { templateService } = await import('../services');
-          data = await templateService.getAll();
-        } else {
-          const { data: sbData, error } = await supabase
-            .from('templates')
-            .select('*')
-            .eq('status', 'active')
-            .order('created_at', { ascending: false });
-          if (error) throw error;
-          data = sbData || [];
-        }
+        const { templateService } = await import('../services');
+        const data = await templateService.getAll({ status: 'active' });
         
         if (data && data.length > 0) {
           setTemplates(data);

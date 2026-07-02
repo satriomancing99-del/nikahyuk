@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../../../stores/authStore';
 import { Template } from '../../../../types/database.types';
-import { supabase } from '../../../../lib/supabase';
-import { templateService, invitationService, eventService, giftService, mediaService } from '../../../../services';
+import { templateService, invitationService, eventService, giftService, mediaService, transactionService } from '../../../../services';
 import { FALLBACK_TEMPLATES } from '../utils/editorHelpers';
 
 export const useInvitationEditor = () => {
@@ -72,8 +71,8 @@ export const useInvitationEditor = () => {
       setActivePackage('platinum');
       return;
     }
-    supabase.from('transactions').select('package_id').eq('user_id', user.id).eq('payment_status', 'success')
-      .then(({ data }) => {
+    transactionService.getAll({ user_id: user.id, payment_status: 'success' })
+      .then((data) => {
         if (data && data.length > 0) {
           const hasPlat = data.some(tx => tx.package_id === '550e8400-e29b-41d4-a716-446655440003');
           const hasGold = data.some(tx => tx.package_id === '550e8400-e29b-41d4-a716-446655440002');
@@ -97,8 +96,7 @@ export const useInvitationEditor = () => {
     const delayDebounce = setTimeout(async () => {
       setCheckingSlug(true);
       try {
-        const { data, error } = await supabase.from('invitations').select('id, slug').eq('slug', customSlug);
-        if (error) throw error;
+        const data = await invitationService.getAll({ slug: customSlug });
         if (data && data.length > 0) {
           setSlugExists(editId && data[0].id === editId ? false : true);
         } else {

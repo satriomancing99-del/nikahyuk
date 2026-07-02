@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, FormEvent } from 'react';
 import { musicLibraryService } from '../../../../services';
 import { MusicLibrary } from '../../../../types/database.types';
-import { supabase } from '../../../../lib/supabase';
+import { useAuthStore } from '../../../../stores/authStore';
 
 export const useBgmManager = () => {
+  const { user, profile } = useAuthStore();
   const [bgmList, setBgmList] = useState<MusicLibrary[]>([]);
   const [bgmLoading, setBgmLoading] = useState(true);
   const [newBgmFile, setNewBgmFile] = useState<File | null>(null);
@@ -38,16 +39,7 @@ export const useBgmManager = () => {
 
     setIsBgmUploading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) throw new Error('Sesi tidak ditemukan. Silakan login kembali.');
-
-      const userId = session.user.id;
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .single();
-
+      if (!user) throw new Error('Sesi tidak ditemukan. Silakan login kembali.');
       if (!profile || profile.role !== 'super_admin') {
         throw new Error('Anda tidak memiliki izin untuk mengunggah BGM bersama (khusus admin).');
       }
@@ -57,7 +49,7 @@ export const useBgmManager = () => {
         newBgmTitle.trim(),
         newBgmArtist.trim() || 'Unknown',
         false, // Public shared track
-        userId,
+        user.id,
         profile.role
       );
 
@@ -81,7 +73,8 @@ export const useBgmManager = () => {
       if (fileUrl.includes('/music/')) {
         const filePath = fileUrl.split('/music/').pop();
         if (filePath) {
-          await supabase.storage.from('music').remove([decodeURIComponent(filePath)]);
+          const { cloudflareApi } = await import('../../../../lib/cloudflare-api');
+          await cloudflareApi.deleteFile(decodeURIComponent(filePath));
         }
       }
 

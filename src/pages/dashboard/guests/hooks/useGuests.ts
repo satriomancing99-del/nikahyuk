@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../../../../stores/authStore';
-import { invitationService, guestService } from '../../../../services';
+import { invitationService, guestService, templateService } from '../../../../services';
 import { Invitation, Guest } from '../../../../types/database.types';
-import { supabase } from '../../../../lib/supabase';
 import { normalizeWhatsApp, generateGuestCode } from '../utils/guestNormalizer';
 
 export const useGuests = () => {
@@ -55,23 +54,9 @@ export const useGuests = () => {
       setGuests(list);
 
       let price = 0;
-      const isD1 = import.meta.env.VITE_USE_D1_AUTH === 'true';
-      if (isD1) {
-        const { templateService } = await import('../../../../services');
-        const tpl = await templateService.getById(selectedInvitation.template_id);
-        if (tpl) {
-          price = Number(tpl.price);
-        }
-      } else {
-        const { data, error } = await supabase
-          .from('templates')
-          .select('price')
-          .eq('id', selectedInvitation.template_id)
-          .single();
-        
-        if (!error && data) {
-          price = Number(data.price);
-        }
+      const tpl = await templateService.getById(selectedInvitation.template_id);
+      if (tpl) {
+        price = Number(tpl.price);
       }
 
       let tier: 'silver' | 'gold' | 'platinum' = 'silver';

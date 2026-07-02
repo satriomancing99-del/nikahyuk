@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { templateService } from '../../../../services';
 import { Template } from '../../../../types/database.types';
-import { supabase } from '../../../../lib/supabase';
 import { useAuthStore } from '../../../../stores/authStore';
 
 export const useTemplatesManager = () => {
@@ -40,13 +39,10 @@ export const useTemplatesManager = () => {
 
   const fetchCollaborationSetting = async () => {
     try {
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('value')
-        .eq('key', 'collaboration_enabled')
-        .single();
-      if (!error && data) {
-        const valObj = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+      const { cloudflareApi } = await import('../../../../lib/cloudflare-api');
+      const rows = await cloudflareApi.getTableRows<any>('system_settings', { key: 'collaboration_enabled' });
+      if (rows && rows.length > 0) {
+        const valObj = typeof rows[0].value === 'string' ? JSON.parse(rows[0].value) : rows[0].value;
         setCollaborationEnabled(!!valObj?.enabled);
       }
     } catch (err) {
@@ -57,14 +53,19 @@ export const useTemplatesManager = () => {
   const handleToggleCollaboration = async () => {
     const nextVal = !collaborationEnabled;
     try {
-      const { error } = await supabase
-        .from('system_settings')
-        .upsert({
-          key: 'collaboration_enabled',
-          value: { enabled: nextVal },
-          updated_at: new Date().toISOString()
-        });
-      if (error) throw error;
+      const { cloudflareApi } = await import('../../../../lib/cloudflare-api');
+      const rows = await cloudflareApi.getTableRows<any>('system_settings', { key: 'collaboration_enabled' });
+      const payload = {
+        key: 'collaboration_enabled',
+        value: JSON.stringify({ enabled: nextVal }),
+        updated_at: new Date().toISOString()
+      };
+      
+      if (rows && rows.length > 0) {
+        await cloudflareApi.updateTableRow('system_settings', 'collaboration_enabled', payload);
+      } else {
+        await cloudflareApi.createTableRow('system_settings', payload);
+      }
       setCollaborationEnabled(nextVal);
       alert(`Akses kontribusi kustomer berhasil ${nextVal ? 'DIBUKA' : 'DITUTUP'}!`);
     } catch (err) {
@@ -160,13 +161,8 @@ export const useTemplatesManager = () => {
         payload.created_by = user.id;
       }
 
-      const { data: existingTemplate, error: checkError } = await supabase
-        .from('templates')
-        .select('id, created_by')
-        .eq('slug', finalSlug)
-        .maybeSingle();
-
-      if (checkError) throw checkError;
+      const templates = await templateService.getAll({ slug: finalSlug });
+      const existingTemplate = templates && templates.length > 0 ? templates[0] : null;
 
       let isUpdate = false;
       if (existingTemplate) {

@@ -10,7 +10,6 @@ import { SlugConfigStep } from './components/FormSteps/SlugConfigStep';
 import { ImageCropperModal } from './components/ImageCropperModal';
 import { base64ToFile } from './utils/editorHelpers';
 import { templateService, invitationService, eventService, giftService, mediaService, storageService } from '../../../services';
-import { supabase } from '../../../lib/supabase';
 
 export default function InvitationEditor() {
   const editor = useInvitationEditor();
@@ -60,8 +59,8 @@ export default function InvitationEditor() {
       
       const loadInvitationData = async () => {
         try {
-          const { data: inv, error } = await supabase.from('invitations').select('*').eq('id', editId).single();
-          if (error || !inv) return;
+          const inv = await invitationService.getById(editId);
+          if (!inv) return;
           setMempelai({
             groom_name: inv.groom_name || '', groom_parent: inv.groom_parent || '',
             bride_name: inv.bride_name || '', bride_parent: inv.bride_parent || '',
@@ -71,7 +70,7 @@ export default function InvitationEditor() {
           setCustomSlug(inv.slug || '');
           if (inv.thumbnail_url) setWaThumbnailUrl(inv.thumbnail_url);
 
-          const { data: evts } = await supabase.from('events').select('*').eq('invitation_id', editId);
+          const evts = await eventService.getAll({ invitation_id: editId });
           if (evts) {
             const akad = evts.find(e => e.type === 'akad');
             if (akad) setEventAkad({
@@ -87,13 +86,13 @@ export default function InvitationEditor() {
             });
           }
 
-          const { data: gfts } = await supabase.from('gifts').select('*').eq('invitation_id', editId);
+          const gfts = await giftService.getAll({ invitation_id: editId });
           if (gfts && gfts.length > 0) setGiftsList(gfts.map(g => ({
             type: g.type || 'Bank', bank_name: g.bank_name || 'BCA', account_number: g.account_number || '',
             account_name: g.account_name || '', ewallet_name: g.ewallet_name || 'GoPay', address: g.address || ''
           })));
 
-          const { data: media } = await supabase.from('media').select('*').eq('invitation_id', editId);
+          const media = await mediaService.getAll({ invitation_id: editId });
           if (media) {
             const gr = media.find(m => m.caption === 'groom_photo');
             if (gr) setGroomPhotoPreview(gr.url);
@@ -283,7 +282,7 @@ export default function InvitationEditor() {
     try {
       setLoading(true);
       if (profile?.role === 'customer') {
-        const { data } = await supabase.from('invitations').select('id, status').eq('user_id', user.id);
+        const data = await invitationService.getAll({ user_id: user.id });
         const activeCount = data?.filter(inv => inv.status === 'published' && inv.id !== editId).length || 0;
         if (activeCount >= 2) {
           alert('Maksimal 2 undangan aktif.');
@@ -300,9 +299,9 @@ export default function InvitationEditor() {
       let invitationId = editId;
       if (editId) {
         await invitationService.update(editId, payload);
-        await supabase.from('events').delete().eq('invitation_id', editId);
-        await supabase.from('gifts').delete().eq('invitation_id', editId);
-        await supabase.from('media').delete().eq('invitation_id', editId);
+        await eventService.deleteMany({ invitation_id: editId });
+        await giftService.deleteMany({ invitation_id: editId });
+        await mediaService.deleteMany({ invitation_id: editId });
       } else {
         const invitation = await invitationService.create(payload);
         invitationId = invitation.id;
