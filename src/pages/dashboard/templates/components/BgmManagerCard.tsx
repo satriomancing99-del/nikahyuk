@@ -1,18 +1,18 @@
 import React from 'react';
-import { Music, Upload, Loader2, Plus, RefreshCw, Play, Pause, Trash2 } from 'lucide-react';
+import { Music, Upload, Loader2, Plus, RefreshCw, Play, Pause, Trash2, X, Check, AlertCircle } from 'lucide-react';
 import { MusicLibrary } from '../../../../types/database.types';
+import { StagedBgm } from '../hooks/useBgmManager';
 
 interface BgmManagerCardProps {
   bgmList: MusicLibrary[];
   bgmLoading: boolean;
-  newBgmFile: File | null;
-  newBgmTitle: string;
-  newBgmArtist: string;
+  stagedBgms: StagedBgm[];
   isBgmUploading: boolean;
   playingBgmId: string | null;
-  setNewBgmFile: (file: File | null) => void;
-  setNewBgmTitle: (title: string) => void;
-  setNewBgmArtist: (artist: string) => void;
+  addStagedBgms: (files: FileList | File[]) => Promise<void>;
+  updateStagedBgm: (id: string, updates: Partial<Pick<StagedBgm, 'title' | 'artist'>>) => void;
+  removeStagedBgm: (id: string) => void;
+  clearStagedBgms: () => void;
   loadBgmList: () => void;
   handleUploadBgm: (e: React.FormEvent) => void;
   handleDeleteBgm: (id: string, fileUrl: string) => void;
@@ -22,14 +22,13 @@ interface BgmManagerCardProps {
 export const BgmManagerCard: React.FC<BgmManagerCardProps> = ({
   bgmList,
   bgmLoading,
-  newBgmFile,
-  newBgmTitle,
-  newBgmArtist,
+  stagedBgms,
   isBgmUploading,
   playingBgmId,
-  setNewBgmFile,
-  setNewBgmTitle,
-  setNewBgmArtist,
+  addStagedBgms,
+  updateStagedBgm,
+  removeStagedBgm,
+  clearStagedBgms,
   loadBgmList,
   handleUploadBgm,
   handleDeleteBgm,
@@ -47,86 +46,133 @@ export const BgmManagerCard: React.FC<BgmManagerCardProps> = ({
         </p>
       </div>
 
-      <form onSubmit={handleUploadBgm} className="space-y-4 bg-gray-50 p-4 rounded-2xl border border-gray-200">
-        <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Unggah BGM Baru</h3>
+      <form onSubmit={handleUploadBgm} className="space-y-4 bg-gray-50 p-4 rounded-2xl border border-gray-250">
+        <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Unggah BGM</h3>
 
-        <div className="space-y-3">
-          <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Judul Lagu *</label>
+        {stagedBgms.length === 0 ? (
+          <div className="border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center hover:border-primary-500 hover:bg-primary-50/10 transition cursor-pointer select-none relative group bg-white">
             <input
-              type="text"
-              required
-              placeholder="Contoh: Janji Suci"
-              value={newBgmTitle}
-              onChange={(e) => setNewBgmTitle(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-xs bg-white"
+              type="file"
+              multiple
+              accept="audio/mp3, audio/mpeg"
+              onChange={async (e) => {
+                const files = e.target.files;
+                if (files && files.length > 0) {
+                  await addStagedBgms(files);
+                }
+              }}
+              className="absolute inset-0 opacity-0 cursor-pointer"
             />
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Artis / Penyanyi</label>
-            <input
-              type="text"
-              placeholder="Contoh: Yovie & Nuno (opsional)"
-              value={newBgmArtist}
-              onChange={(e) => setNewBgmArtist(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-xs bg-white"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Berkas Audio (MP3) *</label>
-            <div className="flex items-center gap-3">
-              <label className="cursor-pointer bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs select-none">
-                <Upload className="w-3.5 h-3.5" />
-                {newBgmFile ? 'Ubah File' : 'Pilih MP3'}
-                <input
-                  type="file"
-                  required
-                  accept="audio/mp3, audio/mpeg"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      if (!file.type.startsWith('audio/') && !file.name.endsWith('.mp3')) {
-                        alert('File harus berupa MP3!');
-                        return;
-                      }
-                      if (file.size > 10 * 1024 * 1024) {
-                        alert('Maksimal ukuran audio adalah 10MB!');
-                        return;
-                      }
-                      setNewBgmFile(file);
-                      if (!newBgmTitle) {
-                        const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                        setNewBgmTitle(nameWithoutExt);
-                      }
-                    }
-                  }}
-                  className="hidden"
-                />
-              </label>
-              <span className="text-[11px] text-gray-500 truncate max-w-[150px]">
-                {newBgmFile ? newBgmFile.name : 'Belum memilih file'}
-              </span>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-primary-50 text-primary-500 flex items-center justify-center group-hover:scale-110 transition duration-300">
+                <Upload className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-gray-700">Pilih Berkas MP3</p>
+                <p className="text-[10px] text-gray-400">Seret & lepas atau klik untuk memilih satu atau beberapa MP3 (Maks 10MB per file)</p>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
+              {stagedBgms.map((item) => (
+                <div key={item.id} className="p-3 bg-white border border-gray-200 rounded-2xl shadow-xs space-y-2 relative group transition hover:border-gray-300">
+                  {/* Top row with filename and remove button */}
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-[10px] font-semibold text-gray-400 truncate max-w-[80%] flex items-center gap-1" title={item.file.name}>
+                      <Music className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                      {item.file.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeStagedBgm(item.id)}
+                      disabled={isBgmUploading}
+                      className="text-gray-400 hover:text-red-500 p-0.5 rounded-md hover:bg-gray-50 transition"
+                      title="Hapus dari antrean"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
 
-        <button
-          type="submit"
-          disabled={isBgmUploading}
-          className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-primary-350 text-white text-xs font-bold py-2 rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs"
-        >
-          {isBgmUploading ? (
-            <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Mengunggah...
-            </>
-          ) : (
-            <>
-              <Plus className="w-3.5 h-3.5" /> Tambah ke Pustaka
-            </>
-          )}
-        </button>
+                  {/* Inputs for Title and Artist */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[8px] font-bold text-gray-400 uppercase mb-0.5">Judul Lagu *</label>
+                      <input
+                        type="text"
+                        required
+                        disabled={isBgmUploading}
+                        value={item.title}
+                        onChange={(e) => updateStagedBgm(item.id, { title: e.target.value })}
+                        placeholder="Judul"
+                        className="w-full px-2 py-1 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-primary-500 text-xs bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[8px] font-bold text-gray-400 uppercase mb-0.5">Artis / Penyanyi</label>
+                      <input
+                        type="text"
+                        disabled={isBgmUploading}
+                        value={item.artist}
+                        onChange={(e) => updateStagedBgm(item.id, { artist: e.target.value })}
+                        placeholder="Penyanyi (opsional)"
+                        className="w-full px-2 py-1 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-primary-500 text-xs bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Status Indicator */}
+                  {item.status !== 'idle' && (
+                    <div className="flex items-center gap-1.5 pt-1 border-t border-gray-100 text-[9px] font-medium">
+                      {item.status === 'uploading' && (
+                        <span className="text-primary-600 flex items-center gap-1">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Sedang mengunggah...
+                        </span>
+                      )}
+                      {item.status === 'success' && (
+                        <span className="text-emerald-600 flex items-center gap-1">
+                          <Check className="w-3 h-3" /> Berhasil diunggah!
+                        </span>
+                      )}
+                      {item.status === 'error' && (
+                        <span className="text-red-600 flex items-center gap-1" title={item.errorMessage}>
+                          <AlertCircle className="w-3 h-3" /> {item.errorMessage || 'Gagal'}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={clearStagedBgms}
+                disabled={isBgmUploading}
+                className="flex-1 border border-gray-200 bg-white hover:bg-gray-50 disabled:bg-gray-50 disabled:text-gray-300 text-gray-700 text-xs font-bold py-2 rounded-xl transition flex items-center justify-center gap-1 cursor-pointer select-none"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={isBgmUploading}
+                className="flex-[2] bg-primary-600 hover:bg-primary-700 disabled:bg-primary-350 text-white text-xs font-bold py-2 rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer select-none"
+              >
+                {isBgmUploading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Mengunggah...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-3.5 h-3.5" /> Unggah {stagedBgms.length} Lagu
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </form>
 
       <div className="space-y-3">

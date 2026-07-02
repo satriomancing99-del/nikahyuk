@@ -35,14 +35,13 @@ interface AdminViewProps {
   
   bgmList: any[];
   bgmLoading: boolean;
-  newBgmFile: File | null;
-  newBgmTitle: string;
-  newBgmArtist: string;
+  stagedBgms: any[];
   isBgmUploading: boolean;
   playingBgmId: string | null;
-  setNewBgmFile: (file: File | null) => void;
-  setNewBgmTitle: (title: string) => void;
-  setNewBgmArtist: (artist: string) => void;
+  addStagedBgms: (files: FileList | File[]) => Promise<void>;
+  updateStagedBgm: (id: string, updates: Partial<{ title: string; artist: string }>) => void;
+  removeStagedBgm: (id: string) => void;
+  clearStagedBgms: () => void;
   loadBgmList: () => void;
   handleUploadBgm: (e: React.FormEvent) => void;
   handleDeleteBgm: (id: string, fileUrl: string) => void;
@@ -87,14 +86,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
   
   bgmList,
   bgmLoading,
-  newBgmFile,
-  newBgmTitle,
-  newBgmArtist,
+  stagedBgms,
   isBgmUploading,
   playingBgmId,
-  setNewBgmFile,
-  setNewBgmTitle,
-  setNewBgmArtist,
+  addStagedBgms,
+  updateStagedBgm,
+  removeStagedBgm,
+  clearStagedBgms,
   loadBgmList,
   handleUploadBgm,
   handleDeleteBgm,
@@ -172,14 +170,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
           <BgmManagerCard
             bgmList={bgmList}
             bgmLoading={bgmLoading}
-            newBgmFile={newBgmFile}
-            newBgmTitle={newBgmTitle}
-            newBgmArtist={newBgmArtist}
+            stagedBgms={stagedBgms}
             isBgmUploading={isBgmUploading}
             playingBgmId={playingBgmId}
-            setNewBgmFile={setNewBgmFile}
-            setNewBgmTitle={setNewBgmTitle}
-            setNewBgmArtist={setNewBgmArtist}
+            addStagedBgms={addStagedBgms}
+            updateStagedBgm={updateStagedBgm}
+            removeStagedBgm={removeStagedBgm}
+            clearStagedBgms={clearStagedBgms}
             loadBgmList={loadBgmList}
             handleUploadBgm={handleUploadBgm}
             handleDeleteBgm={handleDeleteBgm}
