@@ -91,6 +91,22 @@ export const useTemplatesManager = () => {
     }
     try {
       setSaving(true);
+      
+      // Temukan template untuk mendapatkan thumbnail_url dan menghapusnya dari R2
+      const tpl = existingTemplates.find(t => t.id === id);
+      if (tpl && tpl.thumbnail_url) {
+        const match = tpl.thumbnail_url.match(/\/api\/media\/file\/(.+)$/);
+        if (match) {
+          try {
+            const r2Path = decodeURIComponent(match[1]);
+            const { cloudflareApi } = await import('../../../../lib/cloudflare-api');
+            await cloudflareApi.deleteFile(r2Path);
+          } catch (e) {
+            console.error('Error deleting template thumbnail from R2:', e);
+          }
+        }
+      }
+
       await templateService.delete(id);
       setExistingTemplates(prev => prev.filter(t => t.id !== id));
       setSuccessMsg(`Template "${name}" berhasil dihapus.`);
