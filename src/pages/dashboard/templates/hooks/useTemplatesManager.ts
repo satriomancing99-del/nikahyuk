@@ -75,7 +75,7 @@ export const useTemplatesManager = () => {
   };
 
   const handleToggleStatus = async (tpl: Template) => {
-    const nextStatus = tpl.status === 'active' ? 'draft' : 'active';
+    const nextStatus = tpl.status === 'active' ? 'inactive' : 'active';
     try {
       const updated = await templateService.update(tpl.id, { status: nextStatus });
       setExistingTemplates(prev => prev.map(t => t.id === updated.id ? updated : t));
@@ -161,7 +161,7 @@ export const useTemplatesManager = () => {
         price: draftTemplate.price || 150000,
         thumbnail_url: finalThumbnailUrl,
         preview_url: draftTemplate.preview_url || `/preview/${finalSlug}`,
-        status: profile?.role === 'customer' ? 'draft' : (draftTemplate.status || 'active'),
+        status: profile?.role === 'customer' ? 'inactive' : (draftTemplate.status === 'draft' ? 'inactive' : (draftTemplate.status || 'active')),
         jsx_code: draftTemplate.jsx_code || null
       };
 

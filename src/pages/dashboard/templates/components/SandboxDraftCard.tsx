@@ -113,12 +113,12 @@ export const SandboxDraftCard: React.FC<SandboxDraftCardProps> = ({
             <div>
               <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">Status Publikasi</label>
               <select
-                value={draftTemplate.status || 'active'}
+                value={draftTemplate.status === 'draft' ? 'inactive' : (draftTemplate.status || 'active')}
                 onChange={(e) => handleDraftFieldChange('status', e.target.value)}
                 className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:border-primary-500 focus:outline-none bg-white font-medium"
               >
                 <option value="active">Aktif (Langsung Diunggah)</option>
-                <option value="draft">Draf (Hanya Admin)</option>
+                <option value="inactive">Draf (Hanya Admin)</option>
               </select>
             </div>
           </div>
